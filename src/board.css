@@ -1,5 +1,50 @@
 body {
+    padding: 0;
+    margin: 0;
+    color: white;
     background: teal;
+    font-family: sans-serif;
+}
+
+header {
+    padding: 8px 16px;
+    margin: 0 0 16px 0;
+    background: darkgreen;
+    border-color: white;
+    border-width: 0 0 1px 0;
+    border-style: solid;
+}
+
+header h1 {
+    padding: 0;
+    margin: 0;
+}
+
+div#next {
+    line-height: 30px;
+    border: solid 1px white;
+    text-align: center;
+    background: dodgerblue;
+    margin-bottom: 8px;
+}
+
+div#next img {
+    height: 30px;
+    vertical-align: bottom;
+}
+
+div#captured-top {
+    height: 30px;
+}
+
+div#captured-bottom {
+    height: 30px;
+    text-align: right;
+}
+
+div#captured-top img, div#captured-bottom img {
+    height: 30px;
+    margin-left: -8px;
 }
 
 div#container {
@@ -14,7 +59,9 @@ div#the-board {
 
 div#buttons {
     position: relative;
-    left: 604px;
+    width: 120px;
+    height: 0px;
+    left: -128px;
     top: -596px;
 }
 
@@ -25,10 +72,35 @@ div#buttons button {
     cursor: pointer;
     display: block;
     height: 30px;
-    width: 100px;
+    width: 120px;
     margin-bottom: 8px;
 }
 
 div#buttons button:hover {
     background: darkorange;
+}
+
+pre#text {
+    color: white;
+    width: 200px;
+    margin: 0;
+    position: relative;
+    top: -630px;
+    left: 604px;
+    overflow-x: hidden;
+}
+
+/* Override move highlighting */
+div#the-board .highlight1-32417,
+div#the-board .highlight2-9c5d2 {
+    box-shadow: none;
+}
+
+div#the-board .highlight1-32417::before,
+div#the-board .highlight2-9c5d2::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,0,0.25);
 }

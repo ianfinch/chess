@@ -3,21 +3,30 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <script src="dist/board.js" type="text/javascript" charset="utf-8"></script>
+
         <script src="dist/board/jquery.js" type="text/javascript" charset="utf-8"></script>
         <script src="dist/board/chessboard.js" type="text/javascript" charset="utf-8"></script>
-        <link rel="stylesheet" href="dist/board.css" type="text/css" media="screen" />
         <link rel="stylesheet" href="dist/board/chessboard.css" type="text/css" media="screen" />
+
+        <link rel="stylesheet" href="dist/board.css" type="text/css" media="screen" />
+        <script src="dist/chess.js" type="text/javascript" charset="utf-8"></script>
         <title>Chess</title>
     </head>
     <body>
+        <header>
+            <h1>Ian's Chess Sandbox</h1>
+        </header>
         <div id="container">
+            <div id="captured-top"></div>
             <div id="the-board"></div>
             <div id="buttons">
+                <div id="next">Player: <img /></div>
                 <button>Reset</button>
                 <button>Flip</button>
                 <button>Caro-Kann</button>
             </div>
+            <div id="captured-bottom"></div>
+            <pre id="text"></pre>
         </div>
     </body>
 </html>

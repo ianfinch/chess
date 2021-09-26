@@ -2,7 +2,7 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-    entry: "./src/board.js",
+    entry: "./src/index.js",
     module: {
         rules: [
             {
@@ -14,7 +14,7 @@ module.exports = {
         ]
     },
     output: {
-        filename: "board.js",
+        filename: "chess.js",
         path: path.resolve(__dirname, "dist")
     },
     plugins: [
