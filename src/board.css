@@ -1,0 +1,34 @@
+body {
+    background: teal;
+}
+
+div#container {
+    height: 600px;
+    margin: 0 auto;
+    width: 600px;
+}
+
+div#the-board {
+    cursor: pointer;
+}
+
+div#buttons {
+    position: relative;
+    left: 604px;
+    top: -596px;
+}
+
+div#buttons button {
+    background: dodgerblue;
+    border: solid white 1px;
+    color: white;
+    cursor: pointer;
+    display: block;
+    height: 30px;
+    width: 100px;
+    margin-bottom: 8px;
+}
+
+div#buttons button:hover {
+    background: darkorange;
+}
