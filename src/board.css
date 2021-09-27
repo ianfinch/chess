@@ -100,7 +100,28 @@ div#the-board .highlight1-32417::before,
 div#the-board .highlight2-9c5d2::before {
     content: "";
     display: block;
+    position: absolute;
     width: 100%;
     height: 100%;
     background: rgba(255,255,0,0.25);
+}
+
+div#the-board .possible-move::before,
+div#the-board .possible-capture::before {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 30%;
+}
+
+div#the-board .possible-move::before {
+    background-image: url(../assets/dot.svg);
+}
+
+div#the-board .possible-capture::before {
+    background-image: url(../assets/capture.svg);
 }

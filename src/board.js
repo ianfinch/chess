@@ -135,9 +135,86 @@ const wrapPgn = text => {
 };
 
 /**
+ * Highlight the moves list, based on the passed in array
+ */
+const highlightMoves = moves => {
+
+    moves.forEach(move => {
+
+        const target = "square-" + move.to;
+        const elem = document.getElementsByClassName(target)[0];
+
+        if (move.flags.includes("c") || move.flags.includes("e")) {
+            elem.classList.add("possible-capture");
+        } else {
+            elem.classList.add("possible-move");
+        }
+    });
+};
+
+/**
+ * Show moves when moving over a piece
+ */
+const showMovesForPiece = (boardDetails, engine) => {
+
+    return (square, piece) => {
+
+        // Only do anything if we're showing moves
+        if (boardDetails.settings.showMoves === false) {
+            return;
+        }
+
+        // Check there's a piece on this square
+        if (piece === false) {
+            return;
+        }
+
+        // Where can we move to?
+        const moves = engine.moves({ square, verbose: true });
+        if (moves.length === 0) {
+            return;
+        }
+
+        // Display the moves
+        highlightMoves(moves);
+    };
+};
+
+/**
+ * When moving out of a square, hide the moves we were showing
+ */
+const hideMovesForPiece = (boardDetails, engine) => {
+
+    return (square, piece) => {
+
+        if (boardDetails.settings.showMoves === false) {
+            return;
+        }
+
+        hideMoves();
+    };
+};
+
+/**
+ * Clear any displayed moves
+ */
+const hideMoves = () => {
+
+    [
+        "possible-move",
+        "possible-capture"
+    ].forEach(className => {
+
+        [...document.getElementsByClassName(className)].forEach(elem => {
+            elem.classList.remove(className);
+        });
+    });
+};
+
+/**
  * Handle moving pieces, using the engine for validation
  */
-const pieceMoved = (boardRef, engine) => {
+const pieceMoved = (boardDetails, engine) => {
 
     return (source, target, piece, newPos, oldPos, orientation) => {
 
@@ -165,27 +242,36 @@ const pieceMoved = (boardRef, engine) => {
         }
 
         // Update any captured pieces
-        displayCapturedPieces(moved.fen, boardRef());
+        displayCapturedPieces(moved.fen, boardDetails.board);
 
         // Display the moves so far
         setText(wrapPgn(moved.pgn));
 
         // Make sure the displayed board is aligned to the game
-        boardRef().position(moved.fen, false);
+        boardDetails.board.position(moved.fen, false);
     };
 };
 
 /**
  * Add actions to our buttons
  */
-const initButtons = (board, engine) => {
+const initButtons = (boardDetails, engine) => {
+
+    /**
+     * Things we need to do for multiple actions
+     */
+    const boardHousekeeping = () => {
+
+        displayCapturedPieces(engine.fen(), boardDetails.board);
+    };
 
     const actions = {
 
         "Reset": () => {
-            board.start(false);
-            board.orientation("white");
+            boardDetails.board.start(false);
+            boardDetails.board.orientation("white");
             engine.reset();
+            boardHousekeeping();
             setStatusNext("w");
             setText("New game started");
         },
@@ -193,16 +279,27 @@ const initButtons = (board, engine) => {
         "Caro-Kann": () => {
             const pieces = "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR";
             const fen = pieces + " w KQkq - 0 2";
-            board.position(pieces, false);
-            board.orientation("black");
+            boardDetails.board.position(pieces, false);
+            boardDetails.board.orientation("black");
             const position = engine.load(fen);
+            boardHousekeeping();
             setStatusNext("w");
             setText(wrapPgn(position.pgn));
         },
 
         "Flip": () => {
-            board.flip();
-            displayCapturedPieces(engine.fen(), board);
+            boardDetails.board.flip();
+            boardHousekeeping();
+        },
+
+        "Show Moves": e => {
+            if (e.target.childNodes[0].textContent === "Show Moves") {
+                boardDetails.settings.showMoves = true;
+                e.target.childNodes[0].textContent = "Hide Moves";
+            } else {
+                boardDetails.settings.showMoves = false;
+                e.target.childNodes[0].textContent = "Show Moves";
+            }
         }
     };
 
@@ -220,14 +317,19 @@ const initButtons = (board, engine) => {
  */
 const initChessBoard = engine => {
 
-    let board = null;
+    const boardDetails = {
+        board: null,
+        settings: {
+            showMoves: false
+        }
+    };
 
-    const boardRef = () => board;
-
-    board = Chessboard("the-board", {
+    boardDetails.board = Chessboard("the-board", {
         draggable: true,
         dropOffBoard: "snapback",
-        onDrop: pieceMoved(boardRef, engine),
+        onDrop: pieceMoved(boardDetails, engine),
+        onMouseoverSquare: showMovesForPiece (boardDetails, engine),
+        onMouseoutSquare: hideMovesForPiece (boardDetails, engine),
         pieceTheme: "assets/{piece}.svg",
         position: "start"
     });
@@ -235,7 +337,7 @@ const initChessBoard = engine => {
     engine.reset();
     setStatusNext("w");
     setText("New game started");
-    return board;
+    return boardDetails;
 };
 
 /**

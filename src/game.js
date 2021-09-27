@@ -49,6 +49,7 @@ export default {
     fen: game.fen,
     load,
     move,
+    moves: game.moves,
     reset
 
 };
