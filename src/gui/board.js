@@ -3,20 +3,52 @@
  */
 const setStatusNext = player => {
 
-    const icon = document.getElementById("next").getElementsByTagName("img")[0];
-    const alt = document.createAttribute("alt");
-    const src = document.createAttribute("src");
+    // Remove old highlight
+    [...document.getElementsByClassName("next")].forEach(elem => {
+        elem.classList.remove("next");
+    });
 
-    if (player === "w") {
-        alt.value = "white";
-        src.value = "images/wK.svg";
-    } else {
-        alt.value = "black";
-        src.value = "images/bK.svg";
-    }
- 
-    icon.attributes.setNamedItem(alt);
-    icon.attributes.setNamedItem(src);
+    // Highlight the current player
+    [...document.getElementsByClassName("player")].forEach(elem => {
+
+        const img = [...elem.childNodes].filter(x => x.nodeName === "IMG")[0];
+        const src = [...img.attributes].filter(x => x.nodeName === "src")[0];
+
+        if (src.nodeValue === "images/" + player + "K.svg") {
+            elem.classList.add("next");
+        }
+
+    });
+};
+
+/**
+ * Update legend to indicate human or computer players
+ */
+const displayPlayerTypes = boardDetails => {
+
+    [...document.getElementsByClassName("player")].forEach(elem => {
+
+        const img = [...elem.childNodes].filter(x => x.nodeName === "IMG")[0];
+        const src = [...img.attributes].filter(x => x.nodeName === "src")[0];
+        const label = [...elem.childNodes].filter(x => x.nodeName === "DIV")[0];
+
+        if (src.nodeValue === "images/wK.svg") {
+            if (boardDetails.settings.whiteIsPlayer) {
+                label.textContent = "Player";
+            } else {
+                label.textContent = "Bot";
+            }
+        }
+
+        if (src.nodeValue === "images/bK.svg") {
+            if (boardDetails.settings.blackIsPlayer) {
+                label.textContent = "Player";
+            } else {
+                label.textContent = "Bot";
+            }
+        }
+
+    });
 };
 
 /**
@@ -263,42 +295,49 @@ const initButtons = (boardDetails, engine) => {
     const boardHousekeeping = () => {
 
         displayCapturedPieces(engine.fen(), boardDetails.board);
+        displayPlayerTypes(boardDetails);
     };
 
     const actions = {
 
         "Reset": () => {
+
             boardDetails.board.start(false);
             boardDetails.board.orientation("white");
+            boardDetails.settings.whiteIsPlayer = true;
+            boardDetails.settings.blackIsPlayer = false;
+            [...document.getElementsByTagName("button")]
+                .filter(x => x.textContent === "Play as white")
+                .forEach(button => button.textContent = "Play as black");
             engine.reset();
-            boardHousekeeping();
             setStatusNext("w");
             setText("New game started");
-        },
-
-        "Caro-Kann": () => {
-            const pieces = "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR";
-            const fen = pieces + " w KQkq - 0 2";
-            boardDetails.board.position(pieces, false);
-            boardDetails.board.orientation("black");
-            const position = engine.load(fen);
             boardHousekeeping();
-            setStatusNext("w");
-            setText(wrapPgn(position.pgn));
         },
 
-        "Flip": () => {
+        "Play as black": e => {
+
             boardDetails.board.flip();
+            if (boardDetails.board.orientation() === "white") {
+                e.target.childNodes[0].textContent = "Play as black";
+                boardDetails.settings.whiteIsPlayer = true;
+                boardDetails.settings.blackIsPlayer = false;
+            } else {
+                e.target.childNodes[0].textContent = "Play as white";
+                boardDetails.settings.blackIsPlayer = true;
+                boardDetails.settings.whiteIsPlayer = false;
+            }
             boardHousekeeping();
         },
 
-        "Show Moves": e => {
-            if (e.target.childNodes[0].textContent === "Show Moves") {
+        "Show moves": e => {
+
+            if (e.target.childNodes[0].textContent === "Show moves") {
                 boardDetails.settings.showMoves = true;
-                e.target.childNodes[0].textContent = "Hide Moves";
+                e.target.childNodes[0].textContent = "Hide moves";
             } else {
                 boardDetails.settings.showMoves = false;
-                e.target.childNodes[0].textContent = "Show Moves";
+                e.target.childNodes[0].textContent = "Show moves";
             }
         }
     };
@@ -320,7 +359,9 @@ const initChessBoard = engine => {
     const boardDetails = {
         board: null,
         settings: {
-            showMoves: false
+            showMoves: false,
+            whiteIsPlayer: true,
+            blackIsPlayer: false
         }
     };
 
@@ -336,6 +377,7 @@ const initChessBoard = engine => {
 
     engine.reset();
     setStatusNext("w");
+    displayPlayerTypes(boardDetails);
     setText("New game started");
     return boardDetails;
 };

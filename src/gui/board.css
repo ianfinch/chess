@@ -20,17 +20,39 @@ header h1 {
     margin: 0;
 }
 
-div#next {
+div.players {
+    display: flex;
+}
+
+div.player {
     line-height: 30px;
     border: solid 1px white;
     text-align: center;
     background: dodgerblue;
     margin-bottom: 8px;
+    flex: 1;
 }
 
-div#next img {
-    height: 30px;
+div.player:first-child {
+    margin-right: 4px;
+}
+
+div.player:last-child {
+    margin-left: 4px;
+}
+
+div.player img {
+    height: 45px;
     vertical-align: bottom;
+}
+
+div.player > div {
+    cursor: pointer;
+}
+
+div.player.next {
+    background: darkorange;
+    color: black;
 }
 
 div#captured-top {
@@ -74,6 +96,8 @@ div#buttons button {
     height: 30px;
     width: 120px;
     margin-bottom: 8px;
+    line-height: 28px;
+    font-size: 14px;
 }
 
 div#buttons button:hover {
