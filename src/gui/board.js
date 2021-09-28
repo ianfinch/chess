@@ -1,4 +1,11 @@
 /**
+ * Display a "game over" message
+ */
+const gameOver = msg => {
+    window.alert(msg);
+};
+
+/**
  * Update the "who moves next" indicator
  */
 const setStatusNext = player => {
@@ -244,6 +251,71 @@ const hideMoves = () => {
 };
 
 /**
+ * Make an API call to the backend bot to get the next move
+ */
+const requestNextMoveFromBot = engine => {
+
+    const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
+
+    return fetch(location.origin + "/bot/" + protectedFen)
+            .then(response => response.json());
+};
+
+/**
+ * Update the display following a move
+ */
+const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
+
+    // Indicate which player is to move next
+    const nextPlayer = moved.color === "b" ? "w" : "b";
+    setStatusNext(nextPlayer);
+
+    // Update any captured pieces
+    displayCapturedPieces(moved.fen, boardDetails.board);
+
+    // Display the moves so far
+    setText(wrapPgn(moved.pgn));
+
+    // Make sure the displayed board is aligned to the game
+    boardDetails.board.position(moved.fen, false);
+};
+
+/**
+ * Make an automated move, by calling the bot backend
+ */
+const botMakesMove = (boardDetails, engine) => {
+
+    /**
+     * Make the move in the engine
+     */
+    const makeMove = response => {
+
+        if (!response || !response.move) {
+            gameOver("Book opening completed");
+            return null;
+        }
+
+        return engine.move(response.move);
+    };
+
+    /**
+     * Update the display after the move
+     */
+    const updateDisplay = moved => {
+
+        if (!moved) {
+            return null;
+        }
+
+        postMoveDisplayUpdate(moved, boardDetails, engine);
+    };
+
+    requestNextMoveFromBot(engine)
+        .then(makeMove)
+        .then(updateDisplay);
+};
+
+/**
  * Handle moving pieces, using the engine for validation
  */
 const pieceMoved = (boardDetails, engine) => {
@@ -266,21 +338,9 @@ const pieceMoved = (boardDetails, engine) => {
             return "snapback";
         }
 
-        // Indicate which player is to move next
-        if (moved.color === "b") {
-            setStatusNext("w");
-        } else {
-            setStatusNext("b");
-        }
-
-        // Update any captured pieces
-        displayCapturedPieces(moved.fen, boardDetails.board);
-
-        // Display the moves so far
-        setText(wrapPgn(moved.pgn));
-
-        // Make sure the displayed board is aligned to the game
-        boardDetails.board.position(moved.fen, false);
+        // Make sure the display reflects the move
+        postMoveDisplayUpdate(moved, boardDetails, engine);
+botMakesMove(boardDetails, engine);
     };
 };
 

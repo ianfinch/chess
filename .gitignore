@@ -1,4 +1,5 @@
 assets/*.svg
 openings/*.tsv
+openings/*.json
 public
 node_modules
