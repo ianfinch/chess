@@ -1,7 +1,7 @@
 {
   "name": "chess",
   "version": "0.0.1",
-  "main": "board.js",
+  "main": "server.mjs",
   "devDependencies": {
     "@chrisoakman/chessboardjs": "^1.0.0",
     "chess.js": "^0.12.0",
@@ -14,18 +14,25 @@
   },
   "watch": {
     "build": {
-        "patterns": [ "src" ],
-        "extensions": "js,css"
+      "patterns": [
+        "src"
+      ],
+      "extensions": "js,css"
     }
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --mode=development",
-    "clean": "rm -rf ./dist",
+    "clean": "rm -rf ./public",
+    "server": "node server.mjs",
+    "start": "npm run build && npm run server",
     "watch": "npm-watch"
   },
   "keywords": [],
   "author": "Ian Finch",
   "license": "Apache-2.0",
-  "description": "Try out various chess-related ideas"
+  "description": "Try out various chess-related ideas",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
 }

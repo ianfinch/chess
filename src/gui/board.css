@@ -119,9 +119,9 @@ div#the-board .possible-capture::before {
 }
 
 div#the-board .possible-move::before {
-    background-image: url(../assets/dot.svg);
+    background-image: url(../images/dot.svg);
 }
 
 div#the-board .possible-capture::before {
-    background-image: url(../assets/capture.svg);
+    background-image: url(../images/capture.svg);
 }

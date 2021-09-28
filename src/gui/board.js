@@ -9,10 +9,10 @@ const setStatusNext = player => {
 
     if (player === "w") {
         alt.value = "white";
-        src.value = "assets/wK.svg";
+        src.value = "images/wK.svg";
     } else {
         alt.value = "black";
-        src.value = "assets/bK.svg";
+        src.value = "images/bK.svg";
     }
  
     icon.attributes.setNamedItem(alt);
@@ -67,18 +67,18 @@ const displayCapturedPieces = (fen, board) => {
     const captured = getCapturedPieces(fen);
 
     const pieces = {
-        B: { player: "white", alt: "white bishop", src: "assets/wB.svg" },
-        K: { player: "white", alt: "white king",   src: "assets/wK.svg" },
-        N: { player: "white", alt: "white knight", src: "assets/wN.svg" },
-        P: { player: "white", alt: "white pawn",   src: "assets/wP.svg" },
-        Q: { player: "white", alt: "white queen",  src: "assets/wQ.svg" },
-        R: { player: "white", alt: "white rook",   src: "assets/wR.svg" },
-        b: { player: "black", alt: "black bishop", src: "assets/bB.svg" },
-        k: { player: "black", alt: "black king",   src: "assets/bK.svg" },
-        n: { player: "black", alt: "black knight", src: "assets/bN.svg" },
-        p: { player: "black", alt: "black pawn",   src: "assets/bP.svg" },
-        q: { player: "black", alt: "black queen",  src: "assets/bQ.svg" },
-        r: { player: "black", alt: "black rook",   src: "assets/bR.svg" }
+        B: { player: "white", alt: "white bishop", src: "images/wB.svg" },
+        K: { player: "white", alt: "white king",   src: "images/wK.svg" },
+        N: { player: "white", alt: "white knight", src: "images/wN.svg" },
+        P: { player: "white", alt: "white pawn",   src: "images/wP.svg" },
+        Q: { player: "white", alt: "white queen",  src: "images/wQ.svg" },
+        R: { player: "white", alt: "white rook",   src: "images/wR.svg" },
+        b: { player: "black", alt: "black bishop", src: "images/bB.svg" },
+        k: { player: "black", alt: "black king",   src: "images/bK.svg" },
+        n: { player: "black", alt: "black knight", src: "images/bN.svg" },
+        p: { player: "black", alt: "black pawn",   src: "images/bP.svg" },
+        q: { player: "black", alt: "black queen",  src: "images/bQ.svg" },
+        r: { player: "black", alt: "black rook",   src: "images/bR.svg" }
     };
 
     const createImage = piece => {
@@ -330,7 +330,7 @@ const initChessBoard = engine => {
         onDrop: pieceMoved(boardDetails, engine),
         onMouseoverSquare: showMovesForPiece (boardDetails, engine),
         onMouseoutSquare: hideMovesForPiece (boardDetails, engine),
-        pieceTheme: "assets/{piece}.svg",
+        pieceTheme: "images/{piece}.svg",
         position: "start"
     });
 

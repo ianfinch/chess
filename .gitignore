@@ -1,3 +1,4 @@
 assets/*.svg
-dist
+openings/*.tsv
+public
 node_modules
