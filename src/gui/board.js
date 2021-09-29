@@ -1,8 +1,10 @@
+import messages from "./messages.js";
+
 /**
  * Display a "game over" message
  */
 const gameOver = msg => {
-    window.alert(msg);
+    messages.alert("Game Over", msg);
 };
 
 /**
@@ -278,6 +280,13 @@ const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
 
     // Make sure the displayed board is aligned to the game
     boardDetails.board.position(moved.fen, false);
+
+    // Check whether we need the bot to make the next move
+    if ((nextPlayer === "w" && !boardDetails.settings.whiteIsPlayer) ||
+        (nextPlayer === "b" && !boardDetails.settings.blackIsPlayer)) {
+
+        botMakesMove(boardDetails, engine);
+    }
 };
 
 /**
@@ -291,7 +300,16 @@ const botMakesMove = (boardDetails, engine) => {
     const makeMove = response => {
 
         if (!response || !response.move) {
-            gameOver("Book opening completed");
+
+            gameOver("The bot is unable to find a move to play");
+
+            if (engine.turn() === "w") {
+                boardDetails.settings.whiteIsPlayer = true;
+            } else {
+                boardDetails.settings.blackIsPlayer = true;
+            }
+            displayPlayerTypes(boardDetails);
+
             return null;
         }
 
@@ -340,7 +358,6 @@ const pieceMoved = (boardDetails, engine) => {
 
         // Make sure the display reflects the move
         postMoveDisplayUpdate(moved, boardDetails, engine);
-botMakesMove(boardDetails, engine);
     };
 };
 
@@ -448,6 +465,7 @@ const initChessBoard = engine => {
 const init = engine => {
     const board = initChessBoard(engine);
     initButtons(board, engine);
+    messages.init();
 };
 
 export default { init };

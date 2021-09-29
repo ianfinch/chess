@@ -50,6 +50,7 @@ export default {
     load,
     move,
     moves: game.moves,
-    reset
+    reset,
+    turn: game.turn
 
 };
