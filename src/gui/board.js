@@ -45,7 +45,7 @@ const displayPlayerTypes = boardDetails => {
             if (boardDetails.settings.whiteIsPlayer) {
                 label.textContent = "Player";
             } else {
-                label.textContent = "Bot";
+                label.textContent = boardDetails.settings.opponent;
             }
         }
 
@@ -53,7 +53,7 @@ const displayPlayerTypes = boardDetails => {
             if (boardDetails.settings.blackIsPlayer) {
                 label.textContent = "Player";
             } else {
-                label.textContent = "Bot";
+                label.textContent = boardDetails.settings.opponent;
             }
         }
 
@@ -260,7 +260,8 @@ const requestNextMoveFromBot = engine => {
     const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
 
     return fetch(location.origin + "/bot/" + protectedFen)
-            .then(response => response.json());
+            .then(response => response.json())
+            .catch(() => null);
 };
 
 /**
@@ -301,7 +302,11 @@ const botMakesMove = (boardDetails, engine) => {
 
         if (!response || !response.move) {
 
-            gameOver("The bot is unable to find a move to play");
+            if (!response) {
+                gameOver("The backend service is not available");
+            } else {
+                gameOver("The backend service is unable to find a move to play");
+            }
 
             if (engine.turn() === "w") {
                 boardDetails.settings.whiteIsPlayer = true;
@@ -394,16 +399,29 @@ const initButtons = (boardDetails, engine) => {
 
         "Play as black": e => {
 
+            // Rotate the board DIV
             boardDetails.board.flip();
+
+            // Switch over the players
+            const blackIsPlayer = boardDetails.settings.blackIsPlayer;
+            boardDetails.settings.blackIsPlayer = boardDetails.settings.whiteIsPlayer;
+            boardDetails.settings.whiteIsPlayer = blackIsPlayer;
+
+            // Update the button label
             if (boardDetails.board.orientation() === "white") {
                 e.target.childNodes[0].textContent = "Play as black";
-                boardDetails.settings.whiteIsPlayer = true;
-                boardDetails.settings.blackIsPlayer = false;
             } else {
                 e.target.childNodes[0].textContent = "Play as white";
-                boardDetails.settings.blackIsPlayer = true;
-                boardDetails.settings.whiteIsPlayer = false;
             }
+
+            // See if we need to trigger an API-based move
+            const playerToMove = engine.turn();
+            if ((playerToMove === "w" && !boardDetails.settings.whiteIsPlayer) ||
+                (playerToMove === "b" && !boardDetails.settings.blackIsPlayer)) {
+                botMakesMove(boardDetails, engine);
+            }
+
+            // Tidy up the display
             boardHousekeeping();
         },
 
@@ -438,7 +456,8 @@ const initChessBoard = engine => {
         settings: {
             showMoves: false,
             whiteIsPlayer: true,
-            blackIsPlayer: false
+            blackIsPlayer: false,
+            opponent: "CPU"
         }
     };
 
