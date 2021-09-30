@@ -46,6 +46,7 @@ const reset = () => {
 
 export default {
 
+    comment: game.set_comment,
     fen: game.fen,
     load,
     move,

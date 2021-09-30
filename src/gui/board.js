@@ -253,13 +253,39 @@ const hideMoves = () => {
 };
 
 /**
+ * Ask for an API token
+ */
+const requestApiToken = boardDetails => {
+
+    return fetch(location.origin + "/join")
+            .then(response => response.json())
+            .then(response => response.token)
+            .catch(() => null);
+};
+
+/**
  * Make an API call to the backend bot to get the next move
  */
-const requestNextMoveFromBot = engine => {
+const requestNextMoveFromBot = (boardDetails, engine) => {
 
+    // Our FRN needs to be URI encoded
     const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
 
-    return fetch(location.origin + "/bot/" + protectedFen)
+    // Need a token from the API.  Because it's an API call, we need to get all
+    // async.  So, let's start with a promise, which we resolve to the current
+    // value of the apiToken from our settings
+    let haveToken = Promise.resolve(boardDetails.settings.apiToken);
+
+    // Now, if we don't actually have a token, make an API call to get one, and
+    // use the result to replace our "haveToken" promise
+    if (!boardDetails.settings.apiToken) {
+        haveToken = requestApiToken(boardDetails)
+                        .then(token => boardDetails.settings.apiToken = token);
+    }
+
+    // Now we use the token (whichever route we got it) in our API call
+    return haveToken
+            .then(token => fetch(location.origin + "/bot/" + token + "/" + protectedFen))
             .then(response => response.json())
             .catch(() => null);
 };
@@ -333,7 +359,7 @@ const botMakesMove = (boardDetails, engine) => {
         postMoveDisplayUpdate(moved, boardDetails, engine);
     };
 
-    requestNextMoveFromBot(engine)
+    requestNextMoveFromBot(boardDetails, engine)
         .then(makeMove)
         .then(updateDisplay);
 };
@@ -454,6 +480,7 @@ const initChessBoard = engine => {
     const boardDetails = {
         board: null,
         settings: {
+            apiToken: null,
             showMoves: false,
             whiteIsPlayer: true,
             blackIsPlayer: false,
