@@ -1,4 +1,5 @@
 assets/*.svg
+bin/stockfish*
 openings/*.tsv
 openings/*.json
 public

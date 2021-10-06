@@ -1,7 +1,7 @@
 import fs from "fs";
 
 const log = {
-    format: (level, msg) => (new Date().toISOString()) + " " + level + " BOOK   " + msg,
+    format: (level, msg) => (new Date().toISOString()) + " " + level + " BOOK      " + msg,
     info: (msg) => console.log(log.format("INFO ", msg)),
     error: (msg) => console.error(log.format("ERROR", msg))
 };

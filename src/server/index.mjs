@@ -3,11 +3,13 @@ import express from "express";
 const app = express();
 
 import book from "./opening-book.mjs";
+import stockfish from "./stockfish.mjs";
 import randomMove from "./random-move.mjs";
 
 // The bots we will try (in order)
 const bots = [
     book,
+    stockfish,
     randomMove
 ];
 
@@ -15,7 +17,7 @@ const bots = [
 const games = [];
 
 const log = {
-    format: (level, msg) => (new Date().toISOString()) + " " + level + " SERVER " + msg,
+    format: (level, msg) => (new Date().toISOString()) + " " + level + " SERVER    " + msg,
     info: (msg) => console.log(log.format("INFO ", msg)),
     error: (msg) => console.error(log.format("ERROR", msg))
 };
@@ -25,22 +27,37 @@ const log = {
  */
 const getNextMove = (fen) => {
 
-    const moves = bots.map(bot => bot.next(fen))
-                      .filter(move => move);
+    // Get all possible responses
+    const responses = Promise.all(bots.map(bot => bot.next(fen)));
 
-    // If we have no moves, we can't do anything
-    if (moves.length === 0) {
-        return null;
-    }
+    // Identify which are usable moves
+    const moves = responses.then(result => {
+        log.info("Moves from bots: " + JSON.stringify(result));
+        return result.filter(move => move);
+    });
 
-    // If we have exactly one move, play it
-    if (moves.length === 1) {
-        return moves[0];
-    }
+    // Select a move to use
+    const result = moves.then(options => {
 
-    // Otherwise, play the first one
-    // REPLACE THIS AT SOME POINT WITH A VOTE?
-    return moves[0];
+        // If we have no moves, we can't do anything
+        if (options.length === 0) {
+            log.info("No moves available");
+            return null;
+        }
+
+        // If we have exactly one move, play it
+        if (options.length === 1) {
+            log.info("Only move possible: " + options[0]);
+            return options[0];
+        }
+
+        // Otherwise, play the first one
+        // REPLACE THIS AT SOME POINT WITH A VOTE?
+        log.info("Selected move: " + options[0]);
+        return options[0];
+    });
+
+    return result;
 };
 
 process.on("SIGINT", () => {
@@ -69,7 +86,7 @@ app.get("/bot/:player/:fen", (req, res) => {
     }
 
     const decodedFen = decodeURI(req.params.fen.replace(/\|/g, "/"));
-    res.send({ move: getNextMove(decodedFen) });
+    getNextMove(decodedFen).then(move => { res.send({ move }) });
 });
 
 // Start the server

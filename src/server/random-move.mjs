@@ -2,7 +2,7 @@ import { Chess } from "chess.js";
 const chess = new Chess();
 
 const log = {
-    format: (level, msg) => (new Date().toISOString()) + " " + level + " RANDOM " + msg,
+    format: (level, msg) => (new Date().toISOString()) + " " + level + " RANDOM    " + msg,
     info: (msg) => console.log(log.format("INFO ", msg)),
     error: (msg) => console.error(log.format("ERROR", msg))
 };
@@ -24,7 +24,9 @@ const next = fen => {
     }
 
     // Select a move at random
+    log.info("Possible next moves: " + moves.length);
     const selected = Math.floor(Math.random() * moves.length);
+    log.info("Move chosen: " + moves[selected]);
     return moves[selected];
 };
 
