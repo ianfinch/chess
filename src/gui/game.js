@@ -48,9 +48,11 @@ export default {
 
     comment: game.set_comment,
     fen: game.fen,
+    header: game.header,
     load,
     move,
     moves: game.moves,
+    pgn: game.pgn,
     reset,
     turn: game.turn
 

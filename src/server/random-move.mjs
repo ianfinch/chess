@@ -27,7 +27,7 @@ const next = fen => {
     log.info("Possible next moves: " + moves.length);
     const selected = Math.floor(Math.random() * moves.length);
     log.info("Move chosen: " + moves[selected]);
-    return moves[selected];
+    return { move: moves[selected], source: "random" };
 };
 
 log.info("Random moves available");

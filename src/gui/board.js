@@ -326,7 +326,8 @@ const botMakesMove = (boardDetails, engine) => {
      */
     const makeMove = response => {
 
-        if (!response || !response.move) {
+        // Catch any errors
+        if (!response || !response.move || !response.move.move ) {
 
             if (!response) {
                 gameOver("The backend service is not available");
@@ -344,7 +345,15 @@ const botMakesMove = (boardDetails, engine) => {
             return null;
         }
 
-        return engine.move(response.move);
+        // Add any headers from the bot
+        if (response.move.headers) {
+            Object.keys(response.move.headers).forEach(header => {
+                engine.header(header, response.move.headers[header]);
+            });
+        }
+
+        // Return the move
+        return engine.move(response.move.move);
     };
 
     /**
@@ -419,7 +428,8 @@ const initButtons = (boardDetails, engine) => {
                 .forEach(button => button.textContent = "Play as black");
             engine.reset();
             setStatusNext("w");
-            setText("New game started");
+            engine.header("Start", new Date().toUTCString());
+            setText(wrapPgn(engine.pgn()));
             boardHousekeeping();
         },
 
@@ -501,7 +511,8 @@ const initChessBoard = engine => {
     engine.reset();
     setStatusNext("w");
     displayPlayerTypes(boardDetails);
-    setText("New game started");
+    engine.header("Start", new Date().toUTCString());
+    setText(wrapPgn(engine.pgn()));
     return boardDetails;
 };
 

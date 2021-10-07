@@ -37,7 +37,13 @@ const next = fen => {
     const selected = Math.floor(Math.random() * moves.length);
     const continuation = book[fromBook.future[moves[selected]]].name;
     log.info("Move chosen: " + moves[selected] + " (" + continuation + ")");
-    return moves[selected];
+    return {
+        move: moves[selected],
+        source: "opening book",
+        headers: {
+            opening: continuation
+        }
+    };
 };
 
 log.info("Opening book loaded with " + Object.keys(book).length + " positions");

@@ -29,10 +29,10 @@ const next = fen => {
     return engine
             .position(fen)
             .then(e => e.go({ depth: 8 }))
-            .then(result => convertToSan(fen, result.bestmove))
             .then(result => {
-                log.info("Move chosen: " + result);
-                return result;
+                const san = convertToSan(fen, result.bestmove);
+                log.info("Move chosen: " + san);
+                return { move: san, source: "stockfish" };
             });
 };
 

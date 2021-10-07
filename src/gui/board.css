@@ -149,7 +149,6 @@ pre#text {
     position: relative;
     top: -630px;
     left: 604px;
-    overflow-x: hidden;
 }
 
 /* Override move highlighting */

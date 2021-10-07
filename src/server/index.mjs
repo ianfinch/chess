@@ -47,13 +47,13 @@ const getNextMove = (fen) => {
 
         // If we have exactly one move, play it
         if (options.length === 1) {
-            log.info("Only move possible: " + options[0]);
+            log.info("Only move possible: " + JSON.stringify(options[0]));
             return options[0];
         }
 
         // Otherwise, play the first one
         // REPLACE THIS AT SOME POINT WITH A VOTE?
-        log.info("Selected move: " + options[0]);
+        log.info("Selected move: " + JSON.stringify(options[0]));
         return options[0];
     });
 
