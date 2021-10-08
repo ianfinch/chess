@@ -1,8 +1,40 @@
+// Use a promise to link modal close with its open
+let pendingClose = null;
+
+// Somewhere we can queue messages if they arrive while another message is displayed
+const backlog = [];
+
+/**
+ * Generate a new promise to resolve later
+ */
+const generatePromise = () => {
+
+    const result = {};
+
+    result.promise = new Promise((resolve, reject) => {
+        result.resolve = resolve;
+        result.reject = reject;
+    });
+
+    return result;
+};
+
 /**
  * Action to close the modal dialogue
  */
 const closeModal = () => {
+
     document.getElementById("modal").style.display = "none";
+
+    const queuedAlert = backlog.pop();
+    if (queuedAlert) {
+        alert(queuedAlert.header, queuedAlert.msg);
+    }
+
+    if (pendingClose) {
+        pendingClose.resolve(true);
+        pendingClose = null;
+    }
 };
 
 /**
@@ -38,6 +70,12 @@ const init = () => {
  */
 const alert = (header, msg) => {
 
+    const modal = document.getElementById("modal");
+    if (modal.style.display === "block") {
+        backlog.push ({ header, msg });
+        return;
+    }
+
     [...document.getElementById("messages").children].forEach(elem => {
 
         if (elem.tagName === "H2") {
@@ -47,7 +85,10 @@ const alert = (header, msg) => {
         }
     });
 
-    document.getElementById("modal").style.display = "block";
+    modal.style.display = "block";
+
+    pendingClose = generatePromise();
+    return pendingClose.promise;
 };
 
 export default {

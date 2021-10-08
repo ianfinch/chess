@@ -4,7 +4,14 @@ import messages from "./messages.js";
  * Display a "game over" message
  */
 const gameOver = msg => {
-    messages.alert("Game Over", msg);
+    return messages.alert("Game Over", msg);
+};
+
+/**
+ * Display a "try later" message
+ */
+const unexpectedProblem = msg => {
+    return messages.alert("Unexpected Problem", msg);
 };
 
 /**
@@ -259,8 +266,82 @@ const requestApiToken = boardDetails => {
 
     return fetch(location.origin + "/join")
             .then(response => response.json())
-            .then(response => response.token)
+            .then(response => {
+                boardDetails.settings.apiToken = response.token;
+                boardDetails.settings.opponents = response.opponents;
+                return response.token;
+            })
             .catch(() => null);
+};
+
+/**
+ * Get an API token (either stored or a new request)
+ */
+const getApiToken = boardDetails => {
+
+    // Need a token from the API.  Because it's an API call, we need to get all
+    // async.  So, let's start with a promise, which we resolve to the current
+    // value of the apiToken from our settings
+    let theToken = Promise.resolve(boardDetails.settings.apiToken);
+
+    // Now, if we don't actually have a token, make an API call to get one, and
+    // use the result to replace our "theToken" promise
+    if (!boardDetails.settings.apiToken) {
+        theToken = unexpectedProblem("You don't seem to have signed in for a game - will join now")
+                    .then(() => requestApiToken(boardDetails));
+    }
+
+    // However we got our token, return it
+    return theToken;
+};
+
+/**
+ * Get our list of known opponents
+ */
+const getOpponentList = boardDetails => {
+
+    // We should already have a list of opponents
+    let opponents = Promise.resolve(boardDetails.settings.opponents);
+
+    // If we don't make one attempt to get it again
+    if (!boardDetails.settings.opponents || boardDetails.settings.opponents.length === 0) {
+        opponents = unexpectedProblem("No opponents can be found - will retry")
+                        .then(() => requestApiToken(boardDetails))
+                        .then(() => boardDetails.settings.opponents);
+    }
+
+    return opponents;
+};
+
+/**
+ * Select an opponent
+ */
+const selectOpponent = boardDetails => {
+
+    return getOpponentList(boardDetails)
+            .then(opponents => {
+
+                // Bail out if we have no opponents
+                if (!opponents || opponents.length === 0) {
+                    return unexpectedProblem("No opponents are available")
+                            .then(() => null);
+                }
+
+                // Let the player select the opponent
+                const opponent = Promise.resolve(opponents[0]);
+
+                // We also need an API token to select this opponent on the API server
+                const token = getApiToken(boardDetails);
+
+                // Make the API call
+                const selected = Promise.all([ opponent, token ])
+                                    .then(([ opponent, token ]) => {
+                                        return fetch(location.origin + "/opponent/" + token + "/" + opponent);
+                                    })
+                                    .then(response => response.json())
+                                    .catch(() => null);
+                return selected;
+            });
 };
 
 /**
@@ -271,20 +352,8 @@ const requestNextMoveFromBot = (boardDetails, engine) => {
     // Our FRN needs to be URI encoded
     const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
 
-    // Need a token from the API.  Because it's an API call, we need to get all
-    // async.  So, let's start with a promise, which we resolve to the current
-    // value of the apiToken from our settings
-    let haveToken = Promise.resolve(boardDetails.settings.apiToken);
-
-    // Now, if we don't actually have a token, make an API call to get one, and
-    // use the result to replace our "haveToken" promise
-    if (!boardDetails.settings.apiToken) {
-        haveToken = requestApiToken(boardDetails)
-                        .then(token => boardDetails.settings.apiToken = token);
-    }
-
-    // Now we use the token (whichever route we got it) in our API call
-    return haveToken
+    // Now get our token and make the API call
+    return getApiToken(boardDetails)
             .then(token => fetch(location.origin + "/bot/" + token + "/" + protectedFen))
             .then(response => response.json())
             .catch(() => null);
@@ -331,6 +400,8 @@ const botMakesMove = (boardDetails, engine) => {
 
             if (!response) {
                 gameOver("The backend service is not available");
+            } else if (response.error) {
+                gameOver(response.error);
             } else {
                 gameOver("The backend service is unable to find a move to play");
             }
@@ -483,10 +554,28 @@ const initButtons = (boardDetails, engine) => {
 };
 
 /**
+ * Start a new game
+ */
+const startNewGame = (boardDetails, engine) => {
+
+    return selectOpponent(boardDetails)
+            .then(() => {
+
+                engine.reset();
+                setStatusNext("w");
+                displayPlayerTypes(boardDetails);
+
+                engine.header("Start", new Date().toUTCString());
+                setText(wrapPgn(engine.pgn()));
+            });
+};
+
+/**
  * Set up our chess board
  */
 const initChessBoard = engine => {
 
+    // Initialise the settings for our board
     const boardDetails = {
         board: null,
         settings: {
@@ -498,6 +587,7 @@ const initChessBoard = engine => {
         }
     };
 
+    // Create the board GUI
     boardDetails.board = Chessboard("the-board", {
         draggable: true,
         dropOffBoard: "snapback",
@@ -508,11 +598,7 @@ const initChessBoard = engine => {
         position: "start"
     });
 
-    engine.reset();
-    setStatusNext("w");
-    displayPlayerTypes(boardDetails);
-    engine.header("Start", new Date().toUTCString());
-    setText(wrapPgn(engine.pgn()));
+    // Return our board
     return boardDetails;
 };
 
@@ -520,9 +606,15 @@ const initChessBoard = engine => {
  * Run our initialisations
  */
 const init = engine => {
+
+    // Set everything up
     const board = initChessBoard(engine);
     initButtons(board, engine);
     messages.init();
+
+    // Start a new game
+    requestApiToken(board)
+        .then(() => startNewGame(board, engine));
 };
 
 export default { init };

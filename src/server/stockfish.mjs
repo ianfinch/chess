@@ -6,7 +6,7 @@ import { Chess } from "chess.js";
 const chess = new Chess();
 
 const log = {
-    format: (level, msg) => (new Date().toISOString()) + " " + level + " STOCKFISH " + msg,
+    format: (level, msg) => (new Date().toISOString()) + " " + level + " STOCKFISH   " + msg,
     info: (msg) => console.log(log.format("INFO ", msg)),
     error: (msg) => console.error(log.format("ERROR", msg))
 };
