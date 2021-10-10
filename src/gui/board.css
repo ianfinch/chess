@@ -27,7 +27,7 @@ div#modal {
     top: 0;
     left: 0;
     background: rgba(100,100,100,0.7);
-    z-index: 100;
+    z-index: 10000;
 }
 
 div#messages {
@@ -157,8 +157,11 @@ div#the-board .highlight2-9c5d2 {
     box-shadow: none;
 }
 
+/* Set up our own move highlighting */
 div#the-board .highlight1-32417::before,
-div#the-board .highlight2-9c5d2::before {
+div#the-board .highlight2-9c5d2::before,
+div.last-move-from::before,
+div.last-move-to::before {
     content: "";
     display: block;
     position: absolute;
@@ -167,7 +170,14 @@ div#the-board .highlight2-9c5d2::before {
     background: rgba(255,255,0,0.25);
 }
 
+/* Set the z-index on pieces, so I can control overlays */
+img.piece-417db {
+    position: relative;
+    z-index: 100;
+}
+
 div#the-board .possible-move::before,
+div#the-board .check::before,
 div#the-board .possible-capture::before {
     content: "";
     display: block;
@@ -181,8 +191,16 @@ div#the-board .possible-capture::before {
 
 div#the-board .possible-move::before {
     background-image: url(../images/dot.svg);
+    z-index: 150;
 }
 
 div#the-board .possible-capture::before {
     background-image: url(../images/capture.svg);
+    z-index: 150;
+}
+
+div#the-board .check::before {
+    background-image: url(../images/check.svg);
+    background-size: 95%;
+    z-index: 50;
 }

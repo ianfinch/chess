@@ -360,6 +360,61 @@ const requestNextMoveFromBot = (boardDetails, engine) => {
 };
 
 /**
+ * Indicate that a king is in check
+ */
+const showCheck = player => {
+
+    // Filter down our pieces to identify just the king
+    const squares = [...document.getElementsByTagName("img")].filter(elem => {
+
+        // Find which of the pieces is the player in check's king
+        const attrs = [...elem.attributes].map(attr => {
+
+            if (attr.nodeName === "data-piece") {
+                return attr.nodeValue;
+            }
+
+            return null;
+
+        }).filter(x => x);
+
+        // Only retain this if it's the king
+        if (attrs.includes(player + "K")) {
+            return true;
+        }
+
+        // Otherwise we discard it
+        return false;
+    });
+
+    // Assume that we will always have a king in play, so take the first of the
+    // matching squares
+    const kingSquare = squares[0].parentNode;
+
+    // Now add the class to show it's in check
+    kingSquare.classList.add("check");
+};
+
+/**
+ * Anything we need to do before making a move
+ */
+const preMoveDisplayUpdate = () => {
+
+    [
+        "possible-move",
+        "possible-capture",
+        "check",
+        "last-move-from",
+        "last-move-to"
+    ].forEach(className => {
+
+        [...document.getElementsByClassName(className)].forEach(elem => {
+            elem.classList.remove(className);
+        });
+    });
+};
+
+/**
  * Update the display following a move
  */
 const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
@@ -377,6 +432,15 @@ const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
     // Make sure the displayed board is aligned to the game
     boardDetails.board.position(moved.fen, false);
 
+    // Highlight the move which has just happened
+    document.getElementsByClassName("square-" + moved.from)[0].classList.add("last-move-from");
+    document.getElementsByClassName("square-" + moved.to)[0].classList.add("last-move-to");
+
+    // Check whether the next player to move is in check
+    if (engine.inCheck()) {
+        showCheck(nextPlayer);
+    }
+
     // Check whether we need the bot to make the next move
     if ((nextPlayer === "w" && !boardDetails.settings.whiteIsPlayer) ||
         (nextPlayer === "b" && !boardDetails.settings.blackIsPlayer)) {
@@ -389,6 +453,15 @@ const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
  * Make an automated move, by calling the bot backend
  */
 const botMakesMove = (boardDetails, engine) => {
+
+    /**
+     * Prepare the board to make a moge
+     */
+    const preMove = () => {
+
+        preMoveDisplayUpdate();
+        return Promise.resolve(true);
+    };
 
     /**
      * Make the move in the engine
@@ -439,7 +512,8 @@ const botMakesMove = (boardDetails, engine) => {
         postMoveDisplayUpdate(moved, boardDetails, engine);
     };
 
-    requestNextMoveFromBot(boardDetails, engine)
+    preMove()
+        .then(() => requestNextMoveFromBot(boardDetails, engine))
         .then(makeMove)
         .then(updateDisplay);
 };

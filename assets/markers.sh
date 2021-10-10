@@ -7,6 +7,13 @@ echo '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100" height="
 echo '  <circle cx="50" cy="50" r="50" style="fill:#006600; stroke:none; opacity: 0.3;" />' >> assets/dot.svg
 echo '</svg>' >> assets/dot.svg
 
+# Create a circle image for indicating checks
+echo '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' > assets/check.svg
+echo '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' >> assets/check.svg
+echo '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100" height="100">' >> assets/check.svg
+echo '  <circle cx="50" cy="50" r="50" style="fill:#cc3333; stroke:none; opacity: 1.0;" />' >> assets/check.svg
+echo '</svg>' >> assets/check.svg
+
 # Create a circle image for indicating possible captures
 echo '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' > assets/capture.svg
 echo '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' >> assets/capture.svg
