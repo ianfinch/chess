@@ -22,7 +22,7 @@ const generatePromise = () => {
 /**
  * Action to close the modal dialogue
  */
-const closeModal = () => {
+const closeModal = ev => {
 
     document.getElementById("modal").style.display = "none";
 
@@ -32,7 +32,7 @@ const closeModal = () => {
     }
 
     if (pendingClose) {
-        pendingClose.resolve(true);
+        pendingClose.resolve(ev.target.textContent);
         pendingClose = null;
     }
 };
@@ -50,7 +50,7 @@ const initButtons = () => {
 
         const buttons = [...dialogue.children].filter(elem => elem.tagName === "BUTTON");
         buttons.forEach(button => {
-            if (button.textContent === "Close") {
+            if (button.id === "close") {
                 button.addEventListener("click", closeModal);
             }
         });
@@ -82,6 +82,51 @@ const alert = (header, msg) => {
             elem.textContent = header;
         } else if (elem.tagName === "P") {
             elem.textContent = msg;
+        } else if (elem.tagName === "BUTTON") {
+            elem.textContent = "Close";
+        }
+    });
+
+    modal.style.display = "block";
+
+    pendingClose = generatePromise();
+    return pendingClose.promise;
+};
+
+/**
+ * Create an options button
+ */
+const optionButton = legend => {
+
+    const button = document.createElement("button");
+    button.textContent = legend;
+    button.classList.add("option");
+    button.addEventListener("click", closeModal);
+    return button;
+};
+
+/**
+ * Let the user choose from multiple options
+ */
+const options = (header, options) => {
+
+    const modal = document.getElementById("modal");
+    if (modal.style.display === "block") {
+        backlog.push ({ header, msg });
+        return;
+    }
+
+    [...document.getElementById("messages").children].forEach(elem => {
+
+        if (elem.tagName === "H2") {
+            elem.textContent = header;
+        } else if (elem.tagName === "P") {
+            elem.textContent = "";
+            options.forEach(option => {
+                elem.appendChild(optionButton(option));
+            });
+        } else if (elem.tagName === "BUTTON") {
+            elem.textContent = "Cancel";
         }
     });
 
@@ -93,5 +138,6 @@ const alert = (header, msg) => {
 
 export default {
     alert,
-    init
+    init,
+    options
 };

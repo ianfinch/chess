@@ -15,6 +15,13 @@ const unexpectedProblem = msg => {
 };
 
 /**
+ * Display an option selection popup
+ */
+const selectOption = options => {
+    return messages.options("Please select one ...", options);
+};
+
+/**
  * Update the "who moves next" indicator
  */
 const setStatusNext = player => {
@@ -554,28 +561,64 @@ const initButtons = (boardDetails, engine) => {
     /**
      * Things we need to do for multiple actions
      */
+    const setupBoard = player => {
+
+        const opponent = player === "white" ? "black" : "white";
+
+        boardDetails.board.start(false);
+        boardDetails.board.orientation(player);
+
+        if (player === "white") {
+            boardDetails.settings.whiteIsPlayer = true;
+            boardDetails.settings.blackIsPlayer = false;
+        } else {
+            boardDetails.settings.whiteIsPlayer = false;
+            boardDetails.settings.blackIsPlayer = true;
+        }
+
+        [...document.getElementsByTagName("button")]
+            .filter(x => x.textContent === "Play as " + player)
+            .forEach(button => button.textContent = "Play as " + opponent);
+
+        engine.reset();
+        setStatusNext(player.substr(0, 1));
+    };
+
     const boardHousekeeping = () => {
 
         displayCapturedPieces(engine.fen(), boardDetails.board);
         displayPlayerTypes(boardDetails);
     };
 
+    /**
+     * Action-specific functions
+     */
     const actions = {
 
-        "Reset": () => {
+        "New Game": () => {
 
-            boardDetails.board.start(false);
-            boardDetails.board.orientation("white");
-            boardDetails.settings.whiteIsPlayer = true;
-            boardDetails.settings.blackIsPlayer = false;
-            [...document.getElementsByTagName("button")]
-                .filter(x => x.textContent === "Play as white")
-                .forEach(button => button.textContent = "Play as black");
-            engine.reset();
-            setStatusNext("w");
-            engine.header("Start", new Date().toUTCString());
-            setText(wrapPgn(engine.pgn()));
-            boardHousekeeping();
+            selectOption([
+                "New Game",
+                "Defend e4"
+            ]).then(option => {
+
+                if (option === "New Game") {
+
+                    setupBoard("white");
+                    engine.header("Start", new Date().toUTCString());
+                    setText(wrapPgn(engine.pgn()));
+                    boardHousekeeping();
+                
+                } else if (option === "Defend e4") {
+
+                    setupBoard("black");
+                    engine.header("Defend against e4", new Date().toUTCString());
+                    const moved = engine.move("e4");
+                    boardDetails.board.position(moved.fen, false);
+                    setText(wrapPgn(engine.pgn()));
+                    boardHousekeeping();
+                }
+            });
         },
 
         "Play as black": e => {
@@ -606,7 +649,7 @@ const initButtons = (boardDetails, engine) => {
             boardHousekeeping();
         },
 
-        "Show moves": e => {
+        "Hide moves": e => {
 
             if (e.target.childNodes[0].textContent === "Show moves") {
                 boardDetails.settings.showMoves = true;
@@ -654,7 +697,7 @@ const initChessBoard = engine => {
         board: null,
         settings: {
             apiToken: null,
-            showMoves: false,
+            showMoves: true,
             whiteIsPlayer: true,
             blackIsPlayer: false,
             opponent: "CPU"
