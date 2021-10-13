@@ -17,8 +17,8 @@ const unexpectedProblem = msg => {
 /**
  * Display an option selection popup
  */
-const selectOption = options => {
-    return messages.options("Please select one ...", options);
+const selectOption = (title, options) => {
+    return messages.options(title, options);
 };
 
 /**
@@ -53,7 +53,7 @@ const displayPlayerTypes = boardDetails => {
 
         const img = [...elem.childNodes].filter(x => x.nodeName === "IMG")[0];
         const src = [...img.attributes].filter(x => x.nodeName === "src")[0];
-        const label = [...elem.childNodes].filter(x => x.nodeName === "DIV")[0];
+        const label = [...elem.childNodes].filter(x => x.nodeName === "SPAN")[0];
 
         if (src.nodeValue === "images/wK.svg") {
             if (boardDetails.settings.whiteIsPlayer) {
@@ -335,7 +335,7 @@ const selectOpponent = boardDetails => {
                 }
 
                 // Let the player select the opponent
-                const opponent = Promise.resolve(opponents[0]);
+                const opponent = selectOption("Select opponent", opponents);
 
                 // We also need an API token to select this opponent on the API server
                 const token = getApiToken(boardDetails);
@@ -597,26 +597,34 @@ const initButtons = (boardDetails, engine) => {
 
         "New Game": () => {
 
-            selectOption([
+            selectOption("Select game type", [
                 "New Game",
                 "Defend e4"
             ]).then(option => {
 
                 if (option === "New Game") {
 
-                    setupBoard("white");
-                    engine.header("Start", new Date().toUTCString());
-                    setText(wrapPgn(engine.pgn()));
-                    boardHousekeeping();
+                    selectOpponent(boardDetails).then(opponent => {
+
+                        engine.reset();
+                        setupBoard("white");
+                        engine.header("Start", new Date().toUTCString());
+                        setText(wrapPgn(engine.pgn()));
+                        boardHousekeeping();
+                    });
                 
                 } else if (option === "Defend e4") {
 
-                    setupBoard("black");
-                    engine.header("Defend against e4", new Date().toUTCString());
-                    const moved = engine.move("e4");
-                    boardDetails.board.position(moved.fen, false);
-                    setText(wrapPgn(engine.pgn()));
-                    boardHousekeeping();
+                    selectOpponent(boardDetails).then(opponent => {
+
+                        engine.reset();
+                        setupBoard("black");
+                        engine.header("Defend against e4", new Date().toUTCString());
+                        const moved = engine.move("e4");
+                        boardDetails.board.position(moved.fen, false);
+                        setText(wrapPgn(engine.pgn()));
+                        boardHousekeeping();
+                    });
                 }
             });
         },
@@ -671,23 +679,6 @@ const initButtons = (boardDetails, engine) => {
 };
 
 /**
- * Start a new game
- */
-const startNewGame = (boardDetails, engine) => {
-
-    return selectOpponent(boardDetails)
-            .then(() => {
-
-                engine.reset();
-                setStatusNext("w");
-                displayPlayerTypes(boardDetails);
-
-                engine.header("Start", new Date().toUTCString());
-                setText(wrapPgn(engine.pgn()));
-            });
-};
-
-/**
  * Set up our chess board
  */
 const initChessBoard = engine => {
@@ -712,7 +703,7 @@ const initChessBoard = engine => {
         onMouseoverSquare: showMovesForPiece (boardDetails, engine),
         onMouseoutSquare: hideMovesForPiece (boardDetails, engine),
         pieceTheme: "images/{piece}.svg",
-        position: "start"
+//        position: "start"
     });
 
     // Return our board
@@ -724,14 +715,10 @@ const initChessBoard = engine => {
  */
 const init = engine => {
 
-    // Set everything up
     const board = initChessBoard(engine);
     initButtons(board, engine);
     messages.init();
-
-    // Start a new game
-    requestApiToken(board)
-        .then(() => startNewGame(board, engine));
+    requestApiToken(board);
 };
 
 export default { init };

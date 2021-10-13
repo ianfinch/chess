@@ -9,7 +9,7 @@ body {
 header, div#messages > h2 {
     padding: 8px 16px;
     margin: 0 0 16px 0;
-    background: darkgreen;
+    background: sienna;
     border-color: white;
     border-width: 0 0 1px 0;
     border-style: solid;
@@ -65,25 +65,11 @@ div#modal div#messages button.option {
     margin-right: 8px;
 }
 
-div.players {
-    display: flex;
-}
-
 div.player {
-    line-height: 30px;
+    line-height: 45px;
     border: solid 1px white;
-    text-align: center;
     background: dodgerblue;
     margin-bottom: 8px;
-    flex: 1;
-}
-
-div.player:first-child {
-    margin-right: 4px;
-}
-
-div.player:last-child {
-    margin-left: 4px;
 }
 
 div.player img {
@@ -124,7 +110,7 @@ div#the-board {
     cursor: pointer;
 }
 
-div#buttons {
+div.players {
     position: relative;
     width: 120px;
     height: 0px;
@@ -132,12 +118,17 @@ div#buttons {
     top: -596px;
 }
 
+div#buttons {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+}
+
 div#buttons button, div#modal button {
     background: dodgerblue;
     border: solid white 1px;
     color: white;
     cursor: pointer;
-    display: block;
     height: 30px;
     width: 120px;
     margin-bottom: 8px;

@@ -10,11 +10,16 @@
 
         <link rel="stylesheet" href="board.css" type="text/css" media="screen" />
         <script src="chess.js" type="text/javascript" charset="utf-8"></script>
-        <title>Chess</title>
+        <title>Chess Box</title>
     </head>
     <body>
         <header>
-            <h1>Ian's Chess Sandbox</h1>
+            <h1>Chess Box</h1>
+            <div id="buttons">
+                <button>New Game</button>
+                <button>Play as black</button>
+                <button>Hide moves</button>
+            </div>
         </header>
         <div id="modal" style="display: none">
             <div id="messages">
@@ -27,20 +32,15 @@
             <div id="captured-top"></div>
             <div id="the-board">
             </div>
-            <div id="buttons">
-                <div class="players">
-                    <div class="player">
-                        <img src="images/wK.svg" />
-                        <div>Player</div>
-                    </div>
-                    <div class="player">
-                        <img src="images/bK.svg" />
-                        <div>Player</div>
-                    </div>
+            <div class="players">
+                <div class="player">
+                    <img src="images/wK.svg" />
+                    <span>Player</span>
                 </div>
-                <button>Play as black</button>
-                <button>Hide moves</button>
-                <button>New Game</button>
+                <div class="player">
+                    <img src="images/bK.svg" />
+                    <span>Player</span>
+                </div>
             </div>
             <div id="captured-bottom"></div>
             <pre id="text"></pre>
