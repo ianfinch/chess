@@ -1,25 +1,5 @@
+import bots from "./bots.js";
 import messages from "./messages.js";
-
-/**
- * Display a "game over" message
- */
-const gameOver = msg => {
-    return messages.alert("Game Over", msg);
-};
-
-/**
- * Display a "try later" message
- */
-const unexpectedProblem = msg => {
-    return messages.alert("Unexpected Problem", msg);
-};
-
-/**
- * Display an option selection popup
- */
-const selectOption = (title, options) => {
-    return messages.options(title, options);
-};
 
 /**
  * Update the "who moves next" indicator
@@ -267,103 +247,21 @@ const hideMoves = () => {
 };
 
 /**
- * Ask for an API token
- */
-const requestApiToken = boardDetails => {
-
-    return fetch(location.origin + "/join")
-            .then(response => response.json())
-            .then(response => {
-                boardDetails.settings.apiToken = response.token;
-                boardDetails.settings.opponents = response.opponents;
-                return response.token;
-            })
-            .catch(() => null);
-};
-
-/**
- * Get an API token (either stored or a new request)
- */
-const getApiToken = boardDetails => {
-
-    // Need a token from the API.  Because it's an API call, we need to get all
-    // async.  So, let's start with a promise, which we resolve to the current
-    // value of the apiToken from our settings
-    let theToken = Promise.resolve(boardDetails.settings.apiToken);
-
-    // Now, if we don't actually have a token, make an API call to get one, and
-    // use the result to replace our "theToken" promise
-    if (!boardDetails.settings.apiToken) {
-        theToken = unexpectedProblem("You don't seem to have signed in for a game - will join now")
-                    .then(() => requestApiToken(boardDetails));
-    }
-
-    // However we got our token, return it
-    return theToken;
-};
-
-/**
- * Get our list of known opponents
- */
-const getOpponentList = boardDetails => {
-
-    // We should already have a list of opponents
-    let opponents = Promise.resolve(boardDetails.settings.opponents);
-
-    // If we don't make one attempt to get it again
-    if (!boardDetails.settings.opponents || boardDetails.settings.opponents.length === 0) {
-        opponents = unexpectedProblem("No opponents can be found - will retry")
-                        .then(() => requestApiToken(boardDetails))
-                        .then(() => boardDetails.settings.opponents);
-    }
-
-    return opponents;
-};
-
-/**
  * Select an opponent
  */
 const selectOpponent = boardDetails => {
 
-    return getOpponentList(boardDetails)
-            .then(opponents => {
+    const opponents = boardDetails.bot.getOpponents();
 
-                // Bail out if we have no opponents
-                if (!opponents || opponents.length === 0) {
-                    return unexpectedProblem("No opponents are available")
-                            .then(() => null);
-                }
+    // Bail out if we have no opponents
+    if (!opponents || opponents.length === 0) {
+        return messages.alert("Unexpected Problem", "No opponents are available")
+                .then(() => null);
+    }
 
-                // Let the player select the opponent
-                const opponent = selectOption("Select opponent", opponents);
-
-                // We also need an API token to select this opponent on the API server
-                const token = getApiToken(boardDetails);
-
-                // Make the API call
-                const selected = Promise.all([ opponent, token ])
-                                    .then(([ opponent, token ]) => {
-                                        return fetch(location.origin + "/opponent/" + token + "/" + opponent);
-                                    })
-                                    .then(response => response.json())
-                                    .catch(() => null);
-                return selected;
-            });
-};
-
-/**
- * Make an API call to the backend bot to get the next move
- */
-const requestNextMoveFromBot = (boardDetails, engine) => {
-
-    // Our FRN needs to be URI encoded
-    const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
-
-    // Now get our token and make the API call
-    return getApiToken(boardDetails)
-            .then(token => fetch(location.origin + "/bot/" + token + "/" + protectedFen))
-            .then(response => response.json())
-            .catch(() => null);
+    // Let the player select the opponent
+    return messages.options("Select opponent", opponents)
+            .then(opponent => boardDetails.bot.selectOpponent(opponent));
 };
 
 /**
@@ -479,11 +377,11 @@ const botMakesMove = (boardDetails, engine) => {
         if (!response || !response.move || !response.move.move ) {
 
             if (!response) {
-                gameOver("The backend service is not available");
+                messages.alert("Bot Error", "The backend service is not available");
             } else if (response.error) {
-                gameOver(response.error);
+                messages.alert("Bot Error", response.error);
             } else {
-                gameOver("The backend service is unable to find a move to play");
+                messages.alert("Bot Error", "The backend service is unable to find a move to play");
             }
 
             if (engine.turn() === "w") {
@@ -520,7 +418,7 @@ const botMakesMove = (boardDetails, engine) => {
     };
 
     preMove()
-        .then(() => requestNextMoveFromBot(boardDetails, engine))
+        .then(() => boardDetails.bot.move(engine))
         .then(makeMove)
         .then(updateDisplay);
 };
@@ -597,7 +495,7 @@ const initButtons = (boardDetails, engine) => {
 
         "New Game": () => {
 
-            selectOption("Select game type", [
+            messages.options("Select game type", [
                 "New Game",
                 "Defend e4"
             ]).then(option => {
@@ -686,8 +584,8 @@ const initChessBoard = engine => {
     // Initialise the settings for our board
     const boardDetails = {
         board: null,
+        bot: null,
         settings: {
-            apiToken: null,
             showMoves: true,
             whiteIsPlayer: true,
             blackIsPlayer: false,
@@ -718,7 +616,7 @@ const init = engine => {
     const board = initChessBoard(engine);
     initButtons(board, engine);
     messages.init();
-    requestApiToken(board);
+    bots.init().then(bot => { board.bot = bot; });
 };
 
 export default { init };
