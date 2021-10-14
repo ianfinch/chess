@@ -11,10 +11,10 @@ const requestApiToken = () => {
 /**
  * Make an API call to the backend bot to get the next move
  */
-const requestNextMoveFromBot = (token, engine) => {
+const requestNextMoveFromBot = (token, fen) => {
 
     // Our FEN needs to be URI encoded
-    const protectedFen = encodeURI(engine.fen()).replace(/\//g, "|");
+    const protectedFen = encodeURI(fen).replace(/\//g, "|");
 
     // Now make the API call
     return fetch(location.origin + "/bot/" + token + "/" + protectedFen)
@@ -27,8 +27,8 @@ const requestNextMoveFromBot = (token, engine) => {
  */
 const makeMove = token => {
 
-    return engine => {
-        return requestNextMoveFromBot(token, engine);
+    return fen => {
+        return requestNextMoveFromBot(token, fen);
     };
 };
 

@@ -1,4 +1,5 @@
 import bots from "./bots.js";
+import highlighting from "./highlighting.js";
 import messages from "./messages.js";
 
 /**
@@ -55,10 +56,10 @@ const displayPlayerTypes = boardDetails => {
 };
 
 /**
- * Update the text area
+ * Display the game's moves
  */
-const setText = newContent => {
-    document.getElementById("text").textContent = newContent;
+const displayPgn = pgn => {
+    document.getElementById("text").textContent = wrapPgn(pgn);
 };
 
 /**
@@ -170,83 +171,6 @@ const wrapPgn = text => {
 };
 
 /**
- * Highlight the moves list, based on the passed in array
- */
-const highlightMoves = moves => {
-
-    moves.forEach(move => {
-
-        const target = "square-" + move.to;
-        const elem = document.getElementsByClassName(target)[0];
-
-        if (move.flags.includes("c") || move.flags.includes("e")) {
-            elem.classList.add("possible-capture");
-        } else {
-            elem.classList.add("possible-move");
-        }
-    });
-};
-
-/**
- * Show moves when moving over a piece
- */
-const showMovesForPiece = (boardDetails, engine) => {
-
-    return (square, piece) => {
-
-        // Only do anything if we're showing moves
-        if (boardDetails.settings.showMoves === false) {
-            return;
-        }
-
-        // Check there's a piece on this square
-        if (piece === false) {
-            return;
-        }
-
-        // Where can we move to?
-        const moves = engine.moves({ square, verbose: true });
-        if (moves.length === 0) {
-            return;
-        }
-
-        // Display the moves
-        highlightMoves(moves);
-    };
-};
-
-/**
- * When moving out of a square, hide the moves we were showing
- */
-const hideMovesForPiece = (boardDetails, engine) => {
-
-    return (square, piece) => {
-
-        if (boardDetails.settings.showMoves === false) {
-            return;
-        }
-
-        hideMoves();
-    };
-};
-
-/**
- * Clear any displayed moves
- */
-const hideMoves = () => {
-
-    [
-        "possible-move",
-        "possible-capture"
-    ].forEach(className => {
-
-        [...document.getElementsByClassName(className)].forEach(elem => {
-            elem.classList.remove(className);
-        });
-    });
-};
-
-/**
  * Select an opponent
  */
 const selectOpponent = boardDetails => {
@@ -265,61 +189,6 @@ const selectOpponent = boardDetails => {
 };
 
 /**
- * Indicate that a king is in check
- */
-const showCheck = player => {
-
-    // Filter down our pieces to identify just the king
-    const squares = [...document.getElementsByTagName("img")].filter(elem => {
-
-        // Find which of the pieces is the player in check's king
-        const attrs = [...elem.attributes].map(attr => {
-
-            if (attr.nodeName === "data-piece") {
-                return attr.nodeValue;
-            }
-
-            return null;
-
-        }).filter(x => x);
-
-        // Only retain this if it's the king
-        if (attrs.includes(player + "K")) {
-            return true;
-        }
-
-        // Otherwise we discard it
-        return false;
-    });
-
-    // Assume that we will always have a king in play, so take the first of the
-    // matching squares
-    const kingSquare = squares[0].parentNode;
-
-    // Now add the class to show it's in check
-    kingSquare.classList.add("check");
-};
-
-/**
- * Anything we need to do before making a move
- */
-const preMoveDisplayUpdate = () => {
-
-    [
-        "possible-move",
-        "possible-capture",
-        "check",
-        "last-move-from",
-        "last-move-to"
-    ].forEach(className => {
-
-        [...document.getElementsByClassName(className)].forEach(elem => {
-            elem.classList.remove(className);
-        });
-    });
-};
-
-/**
  * Update the display following a move
  */
 const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
@@ -332,18 +201,18 @@ const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
     displayCapturedPieces(moved.fen, boardDetails.board);
 
     // Display the moves so far
-    setText(wrapPgn(moved.pgn));
+    displayPgn(moved.pgn);
 
     // Make sure the displayed board is aligned to the game
     boardDetails.board.position(moved.fen, false);
 
     // Highlight the move which has just happened
-    document.getElementsByClassName("square-" + moved.from)[0].classList.add("last-move-from");
-    document.getElementsByClassName("square-" + moved.to)[0].classList.add("last-move-to");
+    highlighting.movedFrom(moved.from);
+    highlighting.movedTo(moved.to);
 
     // Check whether the next player to move is in check
     if (engine.inCheck()) {
-        showCheck(nextPlayer);
+        highlighting.showCheck(nextPlayer);
     }
 
     // Check whether we need the bot to make the next move
@@ -364,7 +233,7 @@ const botMakesMove = (boardDetails, engine) => {
      */
     const preMove = () => {
 
-        preMoveDisplayUpdate();
+        highlighting.clear();
         return Promise.resolve(true);
     };
 
@@ -418,7 +287,7 @@ const botMakesMove = (boardDetails, engine) => {
     };
 
     preMove()
-        .then(() => boardDetails.bot.move(engine))
+        .then(() => boardDetails.bot.move(engine.fen()))
         .then(makeMove)
         .then(updateDisplay);
 };
@@ -507,7 +376,7 @@ const initButtons = (boardDetails, engine) => {
                         engine.reset();
                         setupBoard("white");
                         engine.header("Start", new Date().toUTCString());
-                        setText(wrapPgn(engine.pgn()));
+                        displayPgn(engine.pgn());
                         boardHousekeeping();
                     });
                 
@@ -520,7 +389,7 @@ const initButtons = (boardDetails, engine) => {
                         engine.header("Defend against e4", new Date().toUTCString());
                         const moved = engine.move("e4");
                         boardDetails.board.position(moved.fen, false);
-                        setText(wrapPgn(engine.pgn()));
+                        displayPgn(engine.pgn());
                         boardHousekeeping();
                     });
                 }
@@ -598,8 +467,8 @@ const initChessBoard = engine => {
         draggable: true,
         dropOffBoard: "snapback",
         onDrop: pieceMoved(boardDetails, engine),
-        onMouseoverSquare: showMovesForPiece (boardDetails, engine),
-        onMouseoutSquare: hideMovesForPiece (boardDetails, engine),
+        onMouseoverSquare: highlighting.showMovesForPiece (boardDetails, engine),
+        onMouseoutSquare: highlighting.hideMovesForPiece (boardDetails, engine),
         pieceTheme: "images/{piece}.svg",
 //        position: "start"
     });

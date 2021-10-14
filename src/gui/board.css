@@ -132,6 +132,7 @@ div#buttons button, div#modal button {
     height: 30px;
     width: 120px;
     margin-bottom: 8px;
+    margin-right: 8px;
     line-height: 28px;
     font-size: 14px;
 }
