@@ -37,21 +37,20 @@ const displayPlayerTypes = boardDetails => {
         const label = [...elem.childNodes].filter(x => x.nodeName === "SPAN")[0];
 
         if (src.nodeValue === "images/wK.svg") {
-            if (boardDetails.settings.whiteIsPlayer) {
+            if (boardDetails.settings.white === null) {
                 label.textContent = "Player";
             } else {
-                label.textContent = boardDetails.settings.opponent;
+                label.textContent = boardDetails.settings.white.name;
             }
         }
 
         if (src.nodeValue === "images/bK.svg") {
-            if (boardDetails.settings.blackIsPlayer) {
+            if (boardDetails.settings.black === null) {
                 label.textContent = "Player";
             } else {
-                label.textContent = boardDetails.settings.opponent;
+                label.textContent = boardDetails.settings.black.name;
             }
         }
-
     });
 };
 
@@ -184,14 +183,13 @@ const selectOpponent = boardDetails => {
     }
 
     // Let the player select the opponent
-    return messages.options("Select opponent", opponents)
-            .then(opponent => boardDetails.bot.selectOpponent(opponent));
+    return messages.options("Select opponent", opponents);
 };
 
 /**
  * Update the display following a move
  */
-const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
+const postMoveDisplayUpdate = (moved, boardDetails) => {
 
     // Indicate which player is to move next
     const nextPlayer = moved.color === "b" ? "w" : "b";
@@ -211,22 +209,15 @@ const postMoveDisplayUpdate = (moved, boardDetails, engine) => {
     highlighting.movedTo(moved.to);
 
     // Check whether the next player to move is in check
-    if (engine.inCheck()) {
+    if (boardDetails.engine.inCheck()) {
         highlighting.showCheck(nextPlayer);
-    }
-
-    // Check whether we need the bot to make the next move
-    if ((nextPlayer === "w" && !boardDetails.settings.whiteIsPlayer) ||
-        (nextPlayer === "b" && !boardDetails.settings.blackIsPlayer)) {
-
-        botMakesMove(boardDetails, engine);
     }
 };
 
 /**
  * Make an automated move, by calling the bot backend
  */
-const botMakesMove = (boardDetails, engine) => {
+const botMakesMove = (boardDetails) => {
 
     /**
      * Prepare the board to make a moge
@@ -245,6 +236,7 @@ const botMakesMove = (boardDetails, engine) => {
         // Catch any errors
         if (!response || !response.move || !response.move.move ) {
 
+            // Give a bit of information about the error
             if (!response) {
                 messages.alert("Bot Error", "The backend service is not available");
             } else if (response.error) {
@@ -253,10 +245,11 @@ const botMakesMove = (boardDetails, engine) => {
                 messages.alert("Bot Error", "The backend service is unable to find a move to play");
             }
 
-            if (engine.turn() === "w") {
-                boardDetails.settings.whiteIsPlayer = true;
+            // Set the player who was meant to move back to manual
+            if (boardDetails.engine.turn() === "w") {
+                boardDetails.settings.white = null;
             } else {
-                boardDetails.settings.blackIsPlayer = true;
+                boardDetails.settings.black = null;
             }
             displayPlayerTypes(boardDetails);
 
@@ -266,12 +259,12 @@ const botMakesMove = (boardDetails, engine) => {
         // Add any headers from the bot
         if (response.move.headers) {
             Object.keys(response.move.headers).forEach(header => {
-                engine.header(header, response.move.headers[header]);
+                boardDetails.engine.header(header, response.move.headers[header]);
             });
         }
 
         // Return the move
-        return engine.move(response.move.move);
+        return boardDetails.engine.move(response.move.move);
     };
 
     /**
@@ -283,19 +276,42 @@ const botMakesMove = (boardDetails, engine) => {
             return null;
         }
 
-        postMoveDisplayUpdate(moved, boardDetails, engine);
+        postMoveDisplayUpdate(moved, boardDetails);
     };
 
-    preMove()
-        .then(() => boardDetails.bot.move(engine.fen()))
-        .then(makeMove)
-        .then(updateDisplay);
+    return preMove()
+            .then(() => boardDetails.bot.move(boardDetails.engine.fen()))
+            .then(makeMove)
+            .then(updateDisplay);
+};
+
+/**
+ * Check for automatic moves
+ *
+ * We do this in a loop, to allow both sides to play automatically (if game is
+ * set up in that way)
+ */
+const automaticMoves = boardDetails => {
+
+    const playerToMove = boardDetails.engine.turn();
+
+    if (playerToMove === "w" && boardDetails.settings.white) {
+        return boardDetails.settings.white.move(boardDetails)
+                .then(() => automaticMoves(boardDetails));
+    }
+
+    if (playerToMove === "b" && boardDetails.settings.black) {
+        return boardDetails.settings.black.move(boardDetails)
+                .then(() => automaticMoves(boardDetails));
+    }
+
+    return Promise.resolve(null);
 };
 
 /**
  * Handle moving pieces, using the engine for validation
  */
-const pieceMoved = (boardDetails, engine) => {
+const pieceMoved = boardDetails => {
 
     return (source, target, piece, newPos, oldPos, orientation) => {
 
@@ -305,7 +321,7 @@ const pieceMoved = (boardDetails, engine) => {
         }
 
         // Now try to make the move
-        const moved = engine.move({
+        const moved = boardDetails.engine.move({
             from: source,
             to: target
         });
@@ -316,46 +332,81 @@ const pieceMoved = (boardDetails, engine) => {
         }
 
         // Make sure the display reflects the move
-        postMoveDisplayUpdate(moved, boardDetails, engine);
+        postMoveDisplayUpdate(moved, boardDetails);
+
+        // Now look for any automatic moves
+        automaticMoves(boardDetails);
     };
+};
+
+/**
+ * Things we need to set up a basic board before we play any games
+ */
+const setupBoard = (boardDetails, white, black) => {
+
+    // Initialise the board and engine
+    boardDetails.board.start(false);
+    boardDetails.engine.reset();
+
+    // If one of the players is manual (i.e. null), orientate the board for
+    // that player.  If both players are manual or neither player is manual,
+    // orientate the board for white
+    let player = "white";
+    if (black === null && white !== null) {
+        player = "black";
+    }
+    boardDetails.board.orientation(player);
+
+    // White moves first
+    setStatusNext("w");
+
+    // Set up the players
+    boardDetails.settings.white = white;
+    boardDetails.settings.black = black;
+
+    // Set up the button to allow flipping of the board
+    const opponent = player === "white" ? "black" : "white";
+    [...document.getElementsByTagName("button")]
+        .filter(x => x.textContent === "Play as " + player)
+        .forEach(button => button.textContent = "Play as " + opponent);
+};
+
+/**
+ * Start a new game
+ *
+ * Parameters:
+ *
+ *     - The colour to play next
+ *     - Any headers to add to PGN
+ *     - Any moves we make to set up the board
+ */
+const startNewGame = (boardDetails, white, black, pgnHeaders, moves) => {
+
+    setupBoard(boardDetails, white, black);
+    boardDetails.engine.header("Started", new Date().toUTCString());
+
+    if (pgnHeaders) {
+        pgnHeaders.forEach(([key, value]) => {
+            boardDetails.engine.header(key, value);
+        });
+    }
+
+    if (moves) {
+        moves.forEach(move => {
+            const moved = boardDetails.engine.move(move);
+            boardDetails.board.position(moved.fen, false);
+        });
+    }
+
+    displayPgn(boardDetails.engine.pgn());
+    displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
+    displayPlayerTypes(boardDetails);
 };
 
 /**
  * Add actions to our buttons
  */
-const initButtons = (boardDetails, engine) => {
-
-    /**
-     * Things we need to do for multiple actions
-     */
-    const setupBoard = player => {
-
-        const opponent = player === "white" ? "black" : "white";
-
-        boardDetails.board.start(false);
-        boardDetails.board.orientation(player);
-
-        if (player === "white") {
-            boardDetails.settings.whiteIsPlayer = true;
-            boardDetails.settings.blackIsPlayer = false;
-        } else {
-            boardDetails.settings.whiteIsPlayer = false;
-            boardDetails.settings.blackIsPlayer = true;
-        }
-
-        [...document.getElementsByTagName("button")]
-            .filter(x => x.textContent === "Play as " + player)
-            .forEach(button => button.textContent = "Play as " + opponent);
-
-        engine.reset();
-        setStatusNext(player.substr(0, 1));
-    };
-
-    const boardHousekeeping = () => {
-
-        displayCapturedPieces(engine.fen(), boardDetails.board);
-        displayPlayerTypes(boardDetails);
-    };
+const initButtons = (boardDetails) => {
 
     /**
      * Action-specific functions
@@ -371,27 +422,27 @@ const initButtons = (boardDetails, engine) => {
 
                 if (option === "New Game") {
 
-                    selectOpponent(boardDetails).then(opponent => {
+                    selectOpponent(boardDetails)
+                        .then(opponent => {
 
-                        engine.reset();
-                        setupBoard("white");
-                        engine.header("Start", new Date().toUTCString());
-                        displayPgn(engine.pgn());
-                        boardHousekeeping();
-                    });
+                            startNewGame(boardDetails, null, { name: opponent, move: botMakesMove });
+                            boardDetails.bot.selectOpponent(opponent);
+                        });
                 
                 } else if (option === "Defend e4") {
 
-                    selectOpponent(boardDetails).then(opponent => {
+                    selectOpponent(boardDetails)
+                        .then(opponent => {
 
-                        engine.reset();
-                        setupBoard("black");
-                        engine.header("Defend against e4", new Date().toUTCString());
-                        const moved = engine.move("e4");
-                        boardDetails.board.position(moved.fen, false);
-                        displayPgn(engine.pgn());
-                        boardHousekeeping();
-                    });
+                            const moves = [ "e4" ];
+                            const headers = [
+                                [ "Type of game", "Defend against e4" ]
+                            ];
+
+                            startNewGame(boardDetails, { name: opponent, move: botMakesMove }, null,
+                                         headers, moves);
+                            boardDetails.bot.selectOpponent(opponent);
+                        });
                 }
             });
         },
@@ -402,9 +453,9 @@ const initButtons = (boardDetails, engine) => {
             boardDetails.board.flip();
 
             // Switch over the players
-            const blackIsPlayer = boardDetails.settings.blackIsPlayer;
-            boardDetails.settings.blackIsPlayer = boardDetails.settings.whiteIsPlayer;
-            boardDetails.settings.whiteIsPlayer = blackIsPlayer;
+            const blackPlayer = boardDetails.settings.black;
+            boardDetails.settings.black = boardDetails.settings.white;
+            boardDetails.settings.white = blackPlayer;
 
             // Update the button label
             if (boardDetails.board.orientation() === "white") {
@@ -414,14 +465,13 @@ const initButtons = (boardDetails, engine) => {
             }
 
             // See if we need to trigger an API-based move
-            const playerToMove = engine.turn();
-            if ((playerToMove === "w" && !boardDetails.settings.whiteIsPlayer) ||
-                (playerToMove === "b" && !boardDetails.settings.blackIsPlayer)) {
-                botMakesMove(boardDetails, engine);
-            }
+            automaticMoves(boardDetails)
+                .then(() => {
 
-            // Tidy up the display
-            boardHousekeeping();
+                    // Tidy up the display
+                    displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
+                    displayPlayerTypes(boardDetails);
+                });
         },
 
         "Hide moves": e => {
@@ -453,12 +503,12 @@ const initChessBoard = engine => {
     // Initialise the settings for our board
     const boardDetails = {
         board: null,
+        engine,
         bot: null,
         settings: {
             showMoves: true,
-            whiteIsPlayer: true,
-            blackIsPlayer: false,
-            opponent: "CPU"
+            white: null,
+            black: null
         }
     };
 
@@ -467,10 +517,10 @@ const initChessBoard = engine => {
         draggable: true,
         dropOffBoard: "snapback",
         onDrop: pieceMoved(boardDetails, engine),
-        onMouseoverSquare: highlighting.showMovesForPiece (boardDetails, engine),
-        onMouseoutSquare: highlighting.hideMovesForPiece (boardDetails, engine),
+        onMouseoverSquare: highlighting.showMovesForPiece(boardDetails, engine),
+        onMouseoutSquare: highlighting.hideMovesForPiece(boardDetails, engine),
         pieceTheme: "images/{piece}.svg",
-//        position: "start"
+        position: "start"
     });
 
     // Return our board
@@ -483,7 +533,7 @@ const initChessBoard = engine => {
 const init = engine => {
 
     const board = initChessBoard(engine);
-    initButtons(board, engine);
+    initButtons(board);
     messages.init();
     bots.init().then(bot => { board.bot = bot; });
 };

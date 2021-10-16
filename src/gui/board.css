@@ -112,9 +112,9 @@ div#the-board {
 
 div.players {
     position: relative;
-    width: 120px;
+    width: 200px;
     height: 0px;
-    left: -128px;
+    left: -208px;
     top: -596px;
 }
 

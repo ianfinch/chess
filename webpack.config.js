@@ -2,7 +2,10 @@ const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-    entry: "./src/gui/index.js",
+    entry: {
+        board: "./src/gui/index.js",
+        "vs-bot": "./src/gui/vs-bot.js"
+    },
     module: {
         rules: [
             {
@@ -14,7 +17,7 @@ module.exports = {
         ]
     },
     output: {
-        filename: "chess.js",
+        filename: "js/[name].js",
         path: path.resolve(__dirname, "public")
     },
     plugins: [
@@ -25,22 +28,26 @@ module.exports = {
                     to: "index.html"
                 },
                 {
+                    from: "src/gui/vs-bot.html",
+                    to: "vs-bot.html"
+                },
+                {
                     context: "assets/",
                     from: "*.svg",
                     to: "images/"
                 },
                 {
                     from: "src/gui/board.css",
-                    to: "board.css"
+                    to: "css/board.css"
                 },
                 {
                     context: "node_modules/@chrisoakman/chessboardjs/dist/",
                     from: "chessboard-*.min.{js,css}",
-                    to: "board/"
+                    to: "lib/"
                 },
                 {
                     from: "node_modules/jquery/dist/jquery.js",
-                    to: "board/jquery.js"
+                    to: "lib/jquery.js"
                 }
             ]
         })
