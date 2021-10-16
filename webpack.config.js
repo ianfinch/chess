@@ -3,7 +3,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     entry: {
-        board: "./src/gui/index.js",
+        board: "./src/gui/board.js",
+        home: "./src/gui/index.js",
         "vs-bot": "./src/gui/vs-bot.js"
     },
     module: {

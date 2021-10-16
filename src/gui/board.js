@@ -1,4 +1,5 @@
 import bots from "./bots.js";
+import game from "./game.js";
 import highlighting from "./highlighting.js";
 import messages from "./messages.js";
 
@@ -530,9 +531,9 @@ const initChessBoard = engine => {
 /**
  * Run our initialisations
  */
-const init = engine => {
+const init = () => {
 
-    const board = initChessBoard(engine);
+    const board = initChessBoard(game);
     initButtons(board);
     messages.init();
     bots.init().then(bot => { board.bot = bot; });
