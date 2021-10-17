@@ -1,4 +1,3 @@
-import bots from "./bots.js";
 import game from "./game.js";
 import highlighting from "./highlighting.js";
 import messages from "./messages.js";
@@ -171,26 +170,12 @@ const wrapPgn = text => {
 };
 
 /**
- * Select an opponent
- */
-const selectOpponent = boardDetails => {
-
-    const opponents = boardDetails.bot.getOpponents();
-
-    // Bail out if we have no opponents
-    if (!opponents || opponents.length === 0) {
-        return messages.alert("Unexpected Problem", "No opponents are available")
-                .then(() => null);
-    }
-
-    // Let the player select the opponent
-    return messages.options("Select opponent", opponents);
-};
-
-/**
  * Update the display following a move
  */
 const postMoveDisplayUpdate = (moved, boardDetails) => {
+
+    // Clear any previous highlights
+    highlighting.clear();
 
     // Indicate which player is to move next
     const nextPlayer = moved.color === "b" ? "w" : "b";
@@ -213,77 +198,6 @@ const postMoveDisplayUpdate = (moved, boardDetails) => {
     if (boardDetails.engine.inCheck()) {
         highlighting.showCheck(nextPlayer);
     }
-};
-
-/**
- * Make an automated move, by calling the bot backend
- */
-const botMakesMove = (boardDetails) => {
-
-    /**
-     * Prepare the board to make a moge
-     */
-    const preMove = () => {
-
-        highlighting.clear();
-        return Promise.resolve(true);
-    };
-
-    /**
-     * Make the move in the engine
-     */
-    const makeMove = response => {
-
-        // Catch any errors
-        if (!response || !response.move || !response.move.move ) {
-
-            // Give a bit of information about the error
-            if (!response) {
-                messages.alert("Bot Error", "The backend service is not available");
-            } else if (response.error) {
-                messages.alert("Bot Error", response.error);
-            } else {
-                messages.alert("Bot Error", "The backend service is unable to find a move to play");
-            }
-
-            // Set the player who was meant to move back to manual
-            if (boardDetails.engine.turn() === "w") {
-                boardDetails.settings.white = null;
-            } else {
-                boardDetails.settings.black = null;
-            }
-            displayPlayerTypes(boardDetails);
-
-            return null;
-        }
-
-        // Add any headers from the bot
-        if (response.move.headers) {
-            Object.keys(response.move.headers).forEach(header => {
-                boardDetails.engine.header(header, response.move.headers[header]);
-            });
-        }
-
-        // Return the move
-        return boardDetails.engine.move(response.move.move);
-    };
-
-    /**
-     * Update the display after the move
-     */
-    const updateDisplay = moved => {
-
-        if (!moved) {
-            return null;
-        }
-
-        postMoveDisplayUpdate(moved, boardDetails);
-    };
-
-    return preMove()
-            .then(() => boardDetails.bot.move(boardDetails.engine.fen()))
-            .then(makeMove)
-            .then(updateDisplay);
 };
 
 /**
@@ -405,98 +319,6 @@ const startNewGame = (boardDetails, white, black, pgnHeaders, moves) => {
 };
 
 /**
- * Add actions to our buttons
- */
-const initButtons = (boardDetails) => {
-
-    /**
-     * Action-specific functions
-     */
-    const actions = {
-
-        "New Game": () => {
-
-            messages.options("Select game type", [
-                "New Game",
-                "Defend e4"
-            ]).then(option => {
-
-                if (option === "New Game") {
-
-                    selectOpponent(boardDetails)
-                        .then(opponent => {
-
-                            startNewGame(boardDetails, null, { name: opponent, move: botMakesMove });
-                            boardDetails.bot.selectOpponent(opponent);
-                        });
-                
-                } else if (option === "Defend e4") {
-
-                    selectOpponent(boardDetails)
-                        .then(opponent => {
-
-                            const moves = [ "e4" ];
-                            const headers = [
-                                [ "Type of game", "Defend against e4" ]
-                            ];
-
-                            startNewGame(boardDetails, { name: opponent, move: botMakesMove }, null,
-                                         headers, moves);
-                            boardDetails.bot.selectOpponent(opponent);
-                        });
-                }
-            });
-        },
-
-        "Play as black": e => {
-
-            // Rotate the board DIV
-            boardDetails.board.flip();
-
-            // Switch over the players
-            const blackPlayer = boardDetails.settings.black;
-            boardDetails.settings.black = boardDetails.settings.white;
-            boardDetails.settings.white = blackPlayer;
-
-            // Update the button label
-            if (boardDetails.board.orientation() === "white") {
-                e.target.childNodes[0].textContent = "Play as black";
-            } else {
-                e.target.childNodes[0].textContent = "Play as white";
-            }
-
-            // See if we need to trigger an API-based move
-            automaticMoves(boardDetails)
-                .then(() => {
-
-                    // Tidy up the display
-                    displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
-                    displayPlayerTypes(boardDetails);
-                });
-        },
-
-        "Hide moves": e => {
-
-            if (e.target.childNodes[0].textContent === "Show moves") {
-                boardDetails.settings.showMoves = true;
-                e.target.childNodes[0].textContent = "Hide moves";
-            } else {
-                boardDetails.settings.showMoves = false;
-                e.target.childNodes[0].textContent = "Show moves";
-            }
-        }
-    };
-
-    [...document.getElementsByTagName("button")].forEach(button => {
-        const label = button.textContent;
-
-        if (actions[label]) {
-            button.addEventListener("click", actions[label]);
-        }
-    });
-};
-
-/**
  * Set up our chess board
  */
 const initChessBoard = engine => {
@@ -505,7 +327,6 @@ const initChessBoard = engine => {
     const boardDetails = {
         board: null,
         engine,
-        bot: null,
         settings: {
             showMoves: true,
             white: null,
@@ -534,9 +355,8 @@ const initChessBoard = engine => {
 const init = () => {
 
     const board = initChessBoard(game);
-    initButtons(board);
     messages.init();
-    bots.init().then(bot => { board.bot = bot; });
+    return board;
 };
 
 export default { init };
