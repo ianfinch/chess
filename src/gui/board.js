@@ -198,6 +198,10 @@ const postMoveDisplayUpdate = (moved, boardDetails) => {
     if (boardDetails.engine.inCheck()) {
         highlighting.showCheck(nextPlayer);
     }
+
+    // Returning a value, in case I end up using this in a promise chain
+    // somewhere
+    return true;
 };
 
 /**
@@ -211,16 +215,58 @@ const automaticMoves = boardDetails => {
     const playerToMove = boardDetails.engine.turn();
 
     if (playerToMove === "w" && boardDetails.settings.white) {
-        return boardDetails.settings.white.move(boardDetails)
+        return boardDetails.settings.white.move(boardDetails.engine.fen())
+                .then(response => tidyUpAfterAutomaticMove(response, boardDetails))
                 .then(() => automaticMoves(boardDetails));
     }
 
     if (playerToMove === "b" && boardDetails.settings.black) {
-        return boardDetails.settings.black.move(boardDetails)
+        return boardDetails.settings.black.move(boardDetails.engine.fen())
+                .then(response => tidyUpAfterAutomaticMove(response, boardDetails))
                 .then(() => automaticMoves(boardDetails));
     }
 
     return Promise.resolve(null);
+};
+
+/**
+ * Handle the outcome of an automatic move
+ */
+const tidyUpAfterAutomaticMove = (response, boardDetails) => {
+
+    // Handle an error from the automatic move
+    if (!response || !response.move || !response.move.move ) {
+
+        // Give a bit of information about the error
+        if (!response) {
+            messages.alert("Backend Error", "The backend service is not available");
+        } else if (response.error) {
+            messages.alert("Backend Error", response.error);
+        } else {
+            messages.alert("Backend Error", "The backend service is unable to respond");
+        }
+
+        // And let's give up on the bot
+        if (boardDetails.engine.turn() === "w") {
+            boardDetails.settings.white = null;
+        } else {
+            boardDetails.settings.black = null;
+        }
+        displayPlayerTypes(boardDetails);
+    }
+
+    // Add any headers from the bot
+    if (response.move.headers) {
+        Object.keys(response.move.headers).forEach(header => {
+            boardDetails.engine.header(header, response.move.headers[header]);
+        });
+    }
+
+    // Play the move in our internal engine
+    const moved = boardDetails.engine.move(response.move.move);
+
+    // Run our usual set of display updates
+    return postMoveDisplayUpdate(moved, boardDetails);
 };
 
 /**
@@ -284,6 +330,31 @@ const setupBoard = (boardDetails, white, black) => {
     [...document.getElementsByTagName("button")]
         .filter(x => x.textContent === "Play as " + player)
         .forEach(button => button.textContent = "Play as " + opponent);
+};
+
+/**
+ * Flip a board - if white is at the bottom, put black at the bottom
+ *
+ * Return the colour of the player at the bottom of the board after the flip
+ */
+const flipBoard = boardDetails => {
+
+    // Actually rotate the board
+    boardDetails.board.flip();
+
+    // Switch over the players
+    const blackPlayer = boardDetails.settings.black;
+    boardDetails.settings.black = boardDetails.settings.white;
+    boardDetails.settings.white = blackPlayer;
+
+    // See if we need to trigger an automatic move
+    automaticMoves(boardDetails)
+        .then(() => {
+
+            // Tidy up the display
+            displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
+            displayPlayerTypes(boardDetails);
+        });
 };
 
 /**
@@ -356,7 +427,21 @@ const init = () => {
 
     const board = initChessBoard(game);
     messages.init();
-    return board;
+
+    return {
+
+        flip: () => {
+            flipBoard(board);
+        },
+
+        showMoves: onOrOff => {
+            board.settings.showMoves = onOrOff;
+        },
+
+        startNewGame: (white, black, pgnHeaders, moves) => {
+            startNewGame(board, white, black, pgnHeaders, moves);
+        }
+    };
 };
 
 export default { init };
