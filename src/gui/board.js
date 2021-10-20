@@ -177,6 +177,9 @@ const postMoveDisplayUpdate = (moved, boardDetails) => {
     // Clear any previous highlights
     highlighting.clear();
 
+    // Make sure our player types are still correct
+    displayPlayerTypes(boardDetails);
+
     // Indicate which player is to move next
     const nextPlayer = moved.color === "b" ? "w" : "b";
     setStatusNext(nextPlayer);
@@ -252,7 +255,6 @@ const tidyUpAfterAutomaticMove = (response, boardDetails) => {
         } else {
             boardDetails.settings.black = null;
         }
-        displayPlayerTypes(boardDetails);
     }
 
     // Add any headers from the bot
@@ -296,7 +298,8 @@ const pieceMoved = boardDetails => {
         postMoveDisplayUpdate(moved, boardDetails);
 
         // Now look for any automatic moves
-        automaticMoves(boardDetails);
+        return automaticMoves(boardDetails)
+                .then(() => callHook(boardDetails, "onDrop"));
     };
 };
 
@@ -348,35 +351,26 @@ const flipBoard = boardDetails => {
     boardDetails.settings.white = blackPlayer;
 
     // See if we need to trigger an automatic move
-    automaticMoves(boardDetails)
-        .then(() => {
-
-            // Tidy up the display
-            displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
-            displayPlayerTypes(boardDetails);
-        });
+    return automaticMoves(boardDetails);
 };
 
 /**
  * Start a new game
- *
- * Parameters:
- *
- *     - The colour to play next
- *     - Any headers to add to PGN
- *     - Any moves we make to set up the board
  */
 const startNewGame = (boardDetails, white, black, pgnHeaders, moves) => {
 
+    // Create the board
     setupBoard(boardDetails, white, black);
     boardDetails.engine.header("Started", new Date().toUTCString());
 
+    // Add any passed in headers
     if (pgnHeaders) {
         pgnHeaders.forEach(([key, value]) => {
             boardDetails.engine.header(key, value);
         });
     }
 
+    // If there are any moves needed to complete the setup, apply them
     if (moves) {
         moves.forEach(move => {
             const moved = boardDetails.engine.move(move);
@@ -384,9 +378,23 @@ const startNewGame = (boardDetails, white, black, pgnHeaders, moves) => {
         });
     }
 
+    // Display the areas around the board
     displayPgn(boardDetails.engine.pgn());
     displayCapturedPieces(boardDetails.engine.fen(), boardDetails.board);
     displayPlayerTypes(boardDetails);
+
+    // Check whether we need an automatic move now
+    return automaticMoves(boardDetails);
+};
+
+/**
+ * Run a hook (if defined)
+ */
+const callHook = (boardDetails, hook) => {
+
+    if (boardDetails.hooks[hook]) {
+        boardDetails.hooks[hook]();
+    }
 };
 
 /**
@@ -398,6 +406,9 @@ const initChessBoard = engine => {
     const boardDetails = {
         board: null,
         engine,
+        hooks: {
+            onDrop: null
+        },
         settings: {
             showMoves: true,
             white: null,
@@ -430,8 +441,16 @@ const init = () => {
 
     return {
 
+        addHook: (hook, fn) => {
+            board.hooks[hook] = fn;
+        },
+
+        fen: () => {
+            return board.engine.fen();
+        },
+
         flip: () => {
-            flipBoard(board);
+            return flipBoard(board);
         },
 
         showMoves: onOrOff => {
@@ -439,7 +458,7 @@ const init = () => {
         },
 
         startNewGame: (white, black, pgnHeaders, moves) => {
-            startNewGame(board, white, black, pgnHeaders, moves);
+            return startNewGame(board, white, black, pgnHeaders, moves);
         }
     };
 };

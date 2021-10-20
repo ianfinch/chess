@@ -7,6 +7,9 @@ const drawArrow = (from, to) => {
     createArrowSvg(box);
 };
 
+/**
+ * Create the DIV which will contain the arrow
+ */
 const createArrowBox = (from, to) => {
 
     // Get our geometries
@@ -110,9 +113,9 @@ const createArrowSvg = ({ arrowDiv, width, height, margin, direction }) => {
       <path d="M 0 0 L 5 5 L 0 10 z" fill="steelblue" />
     </marker>
   </defs>
-  <circle cx="${x1}" cy="${y1}" r="${margin * 0.8}" fill="steelblue" />
+  <circle cx="${x1}" cy="${y1}" r="${margin * 0.8}" fill="steelblue" opacity="0.7" />
   <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-        stroke="steelblue" stroke-width="20" marker-end="url(#arrowhead)" />
+        stroke="steelblue" stroke-width="20" marker-end="url(#arrowhead)" opacity="0.7" />
 </svg>
     `.trim();
 

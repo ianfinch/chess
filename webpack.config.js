@@ -5,7 +5,8 @@ module.exports = {
     entry: {
         board: "./src/gui/board.js",
         home: "./src/gui/index.js",
-        "vs-bot": "./src/gui/vs-bot.js"
+        "vs-bot": "./src/gui/vs-bot.js",
+        openings: "./src/gui/openings.js"
     },
     module: {
         rules: [
@@ -31,6 +32,10 @@ module.exports = {
                 {
                     from: "src/gui/vs-bot.html",
                     to: "vs-bot.html"
+                },
+                {
+                    from: "src/gui/openings.html",
+                    to: "openings.html"
                 },
                 {
                     context: "assets/",

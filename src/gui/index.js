@@ -1,5 +1,4 @@
 import board from "./board.js";
-import arrows from "./arrows.js";
 
 // Wait until the page is fully loaded before doing anything
 window.addEventListener("load", () => {
@@ -8,7 +7,9 @@ window.addEventListener("load", () => {
         document.location = "vs-bot.html";
     });
 
+    document.getElementById("openings").addEventListener("click", () => {
+        document.location = "openings.html";
+    });
+
     const chessboard = board.init();
-    arrows.drawArrow("d2", "d4");
-    arrows.drawArrow("c1", "f4");
 });
