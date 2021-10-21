@@ -55,13 +55,6 @@ const displayPlayerTypes = boardDetails => {
 };
 
 /**
- * Display the game's moves
- */
-const displayPgn = pgn => {
-    document.getElementById("text").textContent = wrapPgn(pgn);
-};
-
-/**
  * Update the list of captured pieces
  */
 const getCapturedPieces = fen => {
@@ -162,11 +155,78 @@ const displayCapturedPieces = (fen, board) => {
 /**
  * Wrap pgn output
  */
-const wrapPgn = text => {
-    return text.replace(/ ([0-9]\.)/g, "\n $1")
-               .replace(/ ([0-9][0-9]\.)/g, "\n$1")
-               .replace(/^([0-9]\.)/, " $1")
-               .replace(/\n([0-9]\.)/, " $1");
+const formatPgn = text => {
+
+    let result = "";
+
+    // Display any headers
+    text.match(/\[[^\]]*\]/g).forEach(header => {
+        result += "<div>" + header + "</div>";
+    });
+    text = text.replace(/^.*\]/s, "");
+
+    // Separate out the moves
+    let moves = text
+                .split(/([0-9][0-9]*\.)/)
+                .map(x => x.split(/( |{|})/));
+    moves = [].concat.apply([], moves)
+                .map(x => x.trim())
+                .filter(x => x);
+
+    // Add the moves to the result
+    let moveNumber = "";
+    let white = true;
+    let addingComment = false;
+    let pending = "";
+    moves.forEach(move => {
+
+        if (pending) {
+            result += pending;
+            pending = "";
+        }
+
+        if (move === "}") {
+            result += "</div>";
+            addingComment = false;
+
+            if (!white) {
+                pending = "<div>(" + moveNumber + ") ... ";
+            }
+        }
+
+        else if (move === "{") {
+            result += '<div class="comment">';
+            addingComment = true;
+        }
+
+        else if (addingComment) {
+            result += move + " ";
+        }
+
+        else if (move.match(/[0-9][0-9]*\./)) {
+            moveNumber = move;
+            result += "<div>" + move + " ";
+        }
+
+        else if (white) {
+            result += move + " ";
+            white = false;
+        }
+
+        else {
+            result += move + "</div>";
+            white = true;
+        }
+    });
+
+    return result;
+};
+
+/**
+ * Display the game's moves
+ */
+const displayPgn = pgn => {
+    document.getElementById("text").innerHTML = formatPgn(pgn);
 };
 
 /**
@@ -188,7 +248,7 @@ const postMoveDisplayUpdate = (moved, boardDetails) => {
     displayCapturedPieces(moved.fen, boardDetails.board);
 
     // Display the moves so far
-    displayPgn(moved.pgn);
+    displayPgn(boardDetails.engine.pgn());
 
     // Make sure the displayed board is aligned to the game
     boardDetails.board.position(moved.fen, false);
@@ -257,6 +317,9 @@ const tidyUpAfterAutomaticMove = (response, boardDetails) => {
         }
     }
 
+    // Play the move in our internal engine
+    const moved = boardDetails.engine.move(response.move.move);
+
     // Add any headers from the bot
     if (response.move.headers) {
         Object.keys(response.move.headers).forEach(header => {
@@ -264,8 +327,10 @@ const tidyUpAfterAutomaticMove = (response, boardDetails) => {
         });
     }
 
-    // Play the move in our internal engine
-    const moved = boardDetails.engine.move(response.move.move);
+    // Add any comments from the bot
+    if (response.move.comment) {
+        boardDetails.engine.comment(response.move.comment);
+    }
 
     // Run our usual set of display updates
     return postMoveDisplayUpdate(moved, boardDetails);

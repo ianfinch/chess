@@ -56,7 +56,7 @@ const tutorMakesMove = opening => {
             const response = { move: { move: moves[selected] } };
 
             if (opening.lines[fen].comments) {
-                response.move.headers = { "Opening": opening.lines[fen].comments };
+                response.move.comment = opening.lines[fen].comments;
             }
 
             return Promise.resolve(response);

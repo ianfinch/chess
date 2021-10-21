@@ -142,13 +142,21 @@ div#modal div#messages button:hover {
     background: darkorange;
 }
 
-pre#text {
+div#text {
     color: white;
-    width: 200px;
+    width: 240px;
+    height: 0px;
+    font-size: 12px;
     margin: 0;
     position: relative;
     top: -630px;
     left: 604px;
+}
+
+div#text .comment {
+    color: #ccc;
+    font-style: italic;
+    padding-left: 2em;
 }
 
 /* Override move highlighting */
