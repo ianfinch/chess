@@ -510,6 +510,10 @@ const init = () => {
             board.hooks[hook] = fn;
         },
 
+        comment: text => {
+            board.engine.comment(text);
+        },
+
         fen: () => {
             return board.engine.fen();
         },

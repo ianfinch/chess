@@ -41,6 +41,16 @@ const showPossibleMoves = (opening, fen) => {
 };
 
 /**
+ * Add a comment to the game (after a move has been completed)
+ */
+const checkForComment = (chessboard, opening, fen) => {
+
+    if (opening.lines[fen].comments) {
+        chessboard.comment(opening.lines[fen].comments);
+    }
+};
+
+/**
  * Make an automatic move
  */
 const tutorMakesMove = opening => {
@@ -52,12 +62,12 @@ const tutorMakesMove = opening => {
 
         if (opening.lines[fen]) {
 
-            showPossibleMoves(opening, fen);
+            arrows.clear();
 
             const moves = opening.lines[fen].moves;
             const selected = Math.floor(Math.random() * moves.length);
             const response = { move: { move: moves[selected].san } };
-            const moveDelay = fen === startingPosition ? 0 : 1000;
+            const moveDelay = fen === startingPosition ? 0 : 250;
 
             if (opening.lines[fen].comments) {
                 response.move.comment = opening.lines[fen].comments;
@@ -92,25 +102,59 @@ const pickOpening = (chessboard) => {
                 [ "Opening", opening ]
             ];
 
-            const tutor = { name: "Tutor", move: tutorMakesMove(openings[opening]) };
+            // In practice mode, set up the function to make the tutor play moves
+            let tutor = null;
+            if (chessboard.settings.practice) {
+                tutor = { name: "Tutor", move: tutorMakesMove(openings[opening]) };
+            }
 
+            // Set up a new game as either white or black
             let openingPosition = null;
             if (openings[opening].player === "white") {
                 openingPosition = chessboard.startNewGame(null, tutor, headers);
             } else {
                 openingPosition = chessboard.startNewGame(tutor, null, headers);
+                if (tutor === null) {
+                    chessboard.flip();
+                }
             }
 
-            chessboard.addHook("onDrop", () => showPossibleMoves(openings[opening], truncateFen(chessboard.fen())));
+            // Show possible moves after each player's move
+            chessboard.addHook("onDrop", () => {
+
+                const fen = truncateFen(chessboard.fen());
+                showPossibleMoves(openings[opening], fen);
+                checkForComment(chessboard, openings[opening], fen);
+            });
 
             return openingPosition
                     .then(() => showPossibleMoves(openings[opening], truncateFen(chessboard.fen())));
         });
 };
 
+/**
+ * Switch between "play" mode and "study" mode
+ */
+const togglePlayMode = (chessboard) => {
+
+    if (chessboard.settings.practice) {
+        chessboard.settings.practice = false;
+        document.getElementById("practice").textContent = "Practice";
+    } else {
+        chessboard.settings.practice = true;
+        document.getElementById("practice").textContent = "Study";
+    }
+
+    pickOpening(chessboard);
+};
+
 // Wait until the page is fully loaded before doing anything
 window.addEventListener("load", () => {
 
     const chessboard = board.init();
+    chessboard.settings = {};
+    chessboard.settings.practice = false;
+
     document.getElementById("start").addEventListener("click", () => pickOpening(chessboard));
+    document.getElementById("practice").addEventListener("click", () => togglePlayMode(chessboard));
 });
