@@ -4,7 +4,7 @@ import board from "./board.js";
 import messages from "./messages.js";
 
 // FEN for starting position (for convenience)
-const startingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const startingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -";
 
 /**
  * Our openings
@@ -36,7 +36,7 @@ const showPossibleMoves = (opening, fen) => {
 
     const moves = opening.lines[fen].moves;
     moves.forEach(move => {
-        arrows.drawArrow(move[0], move[1]);
+        arrows.drawArrow(move.from, move.to);
     });
 };
 
@@ -48,23 +48,37 @@ const tutorMakesMove = opening => {
     return fen => {
 
         const result = null;
+        fen = truncateFen(fen);
 
         if (opening.lines[fen]) {
 
+            showPossibleMoves(opening, fen);
+
             const moves = opening.lines[fen].moves;
             const selected = Math.floor(Math.random() * moves.length);
-            const response = { move: { move: moves[selected] } };
+            const response = { move: { move: moves[selected].san } };
+            const moveDelay = fen === startingPosition ? 0 : 1000;
 
             if (opening.lines[fen].comments) {
                 response.move.comment = opening.lines[fen].comments;
             }
 
-            return Promise.resolve(response);
+            return new Promise((resolve, reject) => {
+
+                setTimeout(() => {
+                    resolve(response);
+                }, moveDelay);
+            });
         };
 
         return Promise.resolve(null);
     };
 };
+
+/**
+ * Trim down a FEN
+ */
+const truncateFen = fen => fen.replace(/ [0-9]* [0-9]*$/, "");
 
 /**
  * Pick an opening to practice
@@ -87,10 +101,10 @@ const pickOpening = (chessboard) => {
                 openingPosition = chessboard.startNewGame(tutor, null, headers);
             }
 
-            chessboard.addHook("onDrop", () => showPossibleMoves(openings[opening], chessboard.fen()));
+            chessboard.addHook("onDrop", () => showPossibleMoves(openings[opening], truncateFen(chessboard.fen())));
 
             return openingPosition
-                    .then(() => showPossibleMoves(openings[opening], chessboard.fen()));
+                    .then(() => showPossibleMoves(openings[opening], truncateFen(chessboard.fen())));
         });
 };
 

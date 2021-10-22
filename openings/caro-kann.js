@@ -1,56 +1,107 @@
 /**
- * Mine the Caro-Kann openings from the openings book, to populate the openings tutor
+ * Mine the Caro-Kann openings from any PGN files we have
  */
 const fs = require("fs");
 const { Chess } = require("chess.js");
 const game = new Chess();
-const openings = JSON.parse(fs.readFileSync("./openings/openings.json").toString());
-const caroKann = "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+const pgnFolder = "./pgn/";
 
-// Our initial two moves for the Caro-Kann
-const initialMoves = {
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": {
-        moves: [ "e4" ],
-        comments: "King's Pawn opening"
-    },
-    "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1": {
-        moves: [ ["c7", "c6"] ],
-        comments: "Caro-Kann"
-    }
+/**
+ * Process all the PGN files in an opening-specific directory
+ */
+const processDirectory = (opening) => {
+
+    // Find the files to analyse - assume they are grouped in folders named
+    // after the opening family
+    const pgnFiles = fs.readdirSync(pgnFolder + opening);
+
+    // Run the analysis on each PGN file
+    const analysed = pgnFiles.map(filename => {
+
+        const pgn = fs.readFileSync(pgnFolder + opening + "/" + filename).toString();
+        return convertPgn(pgn);
+    });
+
+    // Combine the analyses
+    const combined = [].concat.apply([], analysed).reduce(combine, {});
+
+    return combined;
 };
 
-// Convert a move from SAN to from/to
-const convertMove = (san, fen) => {
+/**
+ * Convert a specific PGN file
+ */
+const convertPgn = pgn => {
 
-    game.load(fen);
-    const moved = game.move(san);
-    return [moved.from, moved.to];
-};
+    game.load_pgn(pgn);
 
-// Get a position from the openings file, based on a FEN
-const getPosition = (fen, depth = 0) => {
+    // Create an array of the moves, to collect the fields needed for the
+    // openings data structure
+    const moves = game.history().concat([null]).map(move => ({
+        fen: null,
+        comments: null,
+        move
+    }));
 
-    const fenFields = fen.split(" ");
-    let moves = Object.keys(openings[fen].future);
+    moves.reverse().forEach(move => {
+        move.comments = game.get_comment();
+        move.fen = game.fen();
 
-    if (fenFields[1] === "b") {
-        moves = moves.map(san => convertMove(san, fen));
-    }
-
-    const result = {
-
-        [fen]: {
-            comments: openings[fen].name,
-            moves
+        if (move.move) {
+            move.full = enrichMove(move.fen, move.move);
         }
-    };
 
-    if (depth < 20) {
-        const futures = Object.values(openings[fen].future).map(x => getPosition(x, depth + 1));
-        return Object.assign.apply({}, [result].concat(futures));
+        game.undo();
+    });
+
+    return moves;
+};
+
+/**
+ * Add the 'from' and 'to' to each move
+ */
+const enrichMove = (fen, move) => {
+
+    const analysis = new Chess();
+    analysis.load(fen);
+    return analysis.move(move);
+};
+
+/**
+ * Combine multiple analyses into a single object, keyed on FEN
+ */
+const combine = (result, item) => {
+
+    // We truncate the FEN, so it doesn't matter when in the game this position
+    // is reached
+    const fen = item.fen.replace(/ [0-9]* [0-9]*$/, "");
+
+    // If we haven't seen this position before, add it
+    if (!result[fen]) {
+        result[fen] = {
+            moves: []
+        };
+    }
+
+    // Copy across the move
+    if (result[fen].moves && item.move) {
+        if (!result[fen].moves.map(x => x.san).includes(item.move)) {
+            result[fen].moves.push(item.full);
+        }
+    }
+
+    // Add any comments
+    if (item.comments) {
+        if (result[fen].comments) {
+            result[fen].comments += " ... ADDITIONAL COMMENT ... " + item.comments.trim();
+        } else {
+            result[fen].comments = item.comments.trim();
+        }
     }
 
     return result;
 };
 
-console.log("export default " + JSON.stringify(Object.assign({}, initialMoves, getPosition(caroKann)), null, 4) + ";");
+console.log("export default");
+console.log(JSON.stringify(processDirectory("caro-kann"), null, 4));
+console.log(";");

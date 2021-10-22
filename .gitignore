@@ -2,5 +2,6 @@ assets/*.svg
 bin/stockfish*
 openings/*.tsv
 openings/*.json
+pgn
 public
 node_modules
