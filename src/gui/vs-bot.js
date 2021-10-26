@@ -96,6 +96,9 @@ const initButtons = (chessboard, bot) => {
             button.addEventListener("click", actions[id]);
         }
     });
+
+    document.getElementsByTagName("h1")[0].addEventListener("click", () => document.location = "index.html");
+    document.getElementsByTagName("h1")[0].style.cursor = "pointer";
 };
 
 // Wait until the page is fully loaded before doing anything

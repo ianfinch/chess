@@ -95,18 +95,18 @@ const displayCapturedPieces = (fen, board) => {
     const captured = getCapturedPieces(fen);
 
     const pieces = {
-        B: { player: "white", alt: "white bishop", src: "images/wB.svg" },
-        K: { player: "white", alt: "white king",   src: "images/wK.svg" },
-        N: { player: "white", alt: "white knight", src: "images/wN.svg" },
-        P: { player: "white", alt: "white pawn",   src: "images/wP.svg" },
-        Q: { player: "white", alt: "white queen",  src: "images/wQ.svg" },
-        R: { player: "white", alt: "white rook",   src: "images/wR.svg" },
-        b: { player: "black", alt: "black bishop", src: "images/bB.svg" },
-        k: { player: "black", alt: "black king",   src: "images/bK.svg" },
-        n: { player: "black", alt: "black knight", src: "images/bN.svg" },
-        p: { player: "black", alt: "black pawn",   src: "images/bP.svg" },
-        q: { player: "black", alt: "black queen",  src: "images/bQ.svg" },
-        r: { player: "black", alt: "black rook",   src: "images/bR.svg" }
+        B: { player: "white", alt: "white bishop", src: "images/wB.svg", value: -3    },
+        K: { player: "white", alt: "white king",   src: "images/wK.svg", value: -1000 },
+        N: { player: "white", alt: "white knight", src: "images/wN.svg", value: -3    },
+        P: { player: "white", alt: "white pawn",   src: "images/wP.svg", value: -1    },
+        Q: { player: "white", alt: "white queen",  src: "images/wQ.svg", value: -9    },
+        R: { player: "white", alt: "white rook",   src: "images/wR.svg", value: -5    },
+        b: { player: "black", alt: "black bishop", src: "images/bB.svg", value: 3     },
+        k: { player: "black", alt: "black king",   src: "images/bK.svg", value: 1000  },
+        n: { player: "black", alt: "black knight", src: "images/bN.svg", value: 3     },
+        p: { player: "black", alt: "black pawn",   src: "images/bP.svg", value: 1     },
+        q: { player: "black", alt: "black queen",  src: "images/bQ.svg", value: 9     },
+        r: { player: "black", alt: "black rook",   src: "images/bR.svg", value: 5     }
     };
 
     const createImage = piece => {
@@ -115,13 +115,20 @@ const displayCapturedPieces = (fen, board) => {
         const alt = document.createAttribute("alt");
         const src = document.createAttribute("src");
 
-        alt.value = pieces[piece].alt;
-        src.value = pieces[piece].src;
+        alt.value = piece.alt;
+        src.value = piece.src;
 
         img.attributes.setNamedItem(alt);
         img.attributes.setNamedItem(src);
 
         return img;
+    };
+
+    const createBalance = value => {
+
+        const span = document.createElement("span");
+        span.textContent = "+" + value;
+        return span;
     };
 
     let takenWhite = null;
@@ -138,18 +145,28 @@ const displayCapturedPieces = (fen, board) => {
     takenWhite.replaceChildren();
     takenBlack.replaceChildren();
 
+    let balance = 0;
     captured.forEach(taken => {
 
         if (pieces[taken.piece].player === "white") {
             for (let i = 0; i < taken.count; i++) {
-                takenWhite.appendChild(createImage(taken.piece));
+                takenWhite.appendChild(createImage(pieces[taken.piece]));
+                balance = balance + pieces[taken.piece].value;
             }
         } else {
             for (let i = 0; i < taken.count; i++) {
-                takenBlack.appendChild(createImage(taken.piece));
+                takenBlack.appendChild(createImage(pieces[taken.piece]));
+                balance = balance + pieces[taken.piece].value;
             }
         }
     });
+
+    if (balance < 0) {
+        takenWhite.appendChild(createBalance(-1 * balance));
+
+    } else if (balance > 0) {
+        takenBlack.appendChild(createBalance(balance));
+    }
 };
 
 /**
@@ -160,10 +177,13 @@ const formatPgn = text => {
     let result = "";
 
     // Display any headers
-    text.match(/\[[^\]]*\]/g).forEach(header => {
-        result += "<div>" + header + "</div>";
-    });
-    text = text.replace(/^.*\]/s, "");
+    const headers = text.match(/\[[^\]]*\]/g);
+    if (headers) {
+        text.match(/\[[^\]]*\]/g).forEach(header => {
+            result += "<div>" + header + "</div>";
+        });
+        text = text.replace(/^.*\]/s, "");
+    }
 
     // Separate out the moves
     let moves = text
@@ -512,6 +532,7 @@ const init = () => {
 
         comment: text => {
             board.engine.comment(text);
+            displayPgn(board.engine.pgn());
         },
 
         fen: () => {

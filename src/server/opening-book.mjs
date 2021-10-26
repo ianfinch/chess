@@ -40,9 +40,7 @@ const next = fen => {
     return {
         move: moves[selected],
         source: "opening book",
-        headers: {
-            opening: continuation
-        }
+        comment: continuation
     };
 };
 

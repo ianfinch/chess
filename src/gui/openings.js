@@ -155,6 +155,9 @@ window.addEventListener("load", () => {
     chessboard.settings = {};
     chessboard.settings.practice = false;
 
+    document.getElementsByTagName("h1")[0].addEventListener("click", () => document.location = "index.html");
+    document.getElementsByTagName("h1")[0].style.cursor = "pointer";
+
     document.getElementById("start").addEventListener("click", () => pickOpening(chessboard));
     document.getElementById("practice").addEventListener("click", () => togglePlayMode(chessboard));
 });
