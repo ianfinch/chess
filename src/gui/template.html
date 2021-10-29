@@ -9,15 +9,15 @@
         <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css" type="text/css" media="screen" />
 
         <link rel="stylesheet" href="css/board.css" type="text/css" media="screen" />
-        <script src="js/openings.js" type="text/javascript" charset="utf-8"></script>
+        <% for (var chunk in htmlWebpackPlugin.files.js) { %><script src="<%= htmlWebpackPlugin.files.js[chunk] %>" type="text/javascript" charset="utf-8"></script>
+<% } %>
         <title>Chess Box</title>
     </head>
     <body>
         <header>
             <h1>Chess Box</h1>
-            <div id="buttons">
-                <button id="start">Select</button>
-                <button id="practice">Practice</button>
+            <div id="buttons"><% for (var button in htmlWebpackPlugin.options.templateParameters.buttons) { %>
+                <button id="<%= button %>"><%= htmlWebpackPlugin.options.templateParameters.buttons[button] %></button><% } %>
             </div>
         </header>
         <div id="modal" style="display: none">

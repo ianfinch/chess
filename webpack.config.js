@@ -1,5 +1,6 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
     entry: {
@@ -23,20 +24,45 @@ module.exports = {
         path: path.resolve(__dirname, "public")
     },
     plugins: [
+        new HtmlWebpackPlugin({
+            filename: "index.html",
+            chunks: [ "home" ],
+            templateParameters: {
+                buttons: {
+                    "vs-computer": "Vs Computer",
+                    "openings": "Openings"
+                }
+            },
+            template: "src/gui/template.html",
+            inject: false
+        }),
+        new HtmlWebpackPlugin({
+            filename: "vs-bot.html",
+            chunks: [ "vs-bot" ],
+            templateParameters: {
+                buttons: {
+                    "new-game": "New Game",
+                    "flip-board": "Play as black",
+                    "toggle-highlight": "Hide moves"
+                }
+            },
+            template: "src/gui/template.html",
+            inject: false
+        }),
+        new HtmlWebpackPlugin({
+            filename: "openings.html",
+            chunks: [ "openings" ],
+            templateParameters: {
+                buttons: {
+                    "start": "Select",
+                    "practice": "Practice"
+                }
+            },
+            template: "src/gui/template.html",
+            inject: false
+        }),
         new CopyPlugin({
             patterns: [
-                {
-                    from: "src/gui/index.html",
-                    to: "index.html"
-                },
-                {
-                    from: "src/gui/vs-bot.html",
-                    to: "vs-bot.html"
-                },
-                {
-                    from: "src/gui/openings.html",
-                    to: "openings.html"
-                },
                 {
                     context: "assets/",
                     from: "*.svg",
