@@ -34,10 +34,56 @@ const reset = () => {
     game.reset();
 };
 
+/**
+ * Check whether the game is over
+ */
+const gameIsOver = () => {
+
+    const winner = game.turn() === "w" ? "black" : "white";
+
+    if (game.in_checkmate()) {
+        return {
+            result: "checkmate",
+            winner
+        };
+    }
+
+    if (game.in_draw()) {
+        if (game.insufficient_material()) {
+            return {
+                result: "draw due to insufficient material",
+                winner
+            };
+        }
+
+        return {
+            result: "draw due to the fifty move rule",
+            winner
+        };
+    }
+
+    if (game.in_stalemate()) {
+        return {
+            result: "stalemate",
+            winner
+        };
+    }
+
+    if (game.in_threefold_repetition()) {
+        return {
+            result: "repeated moves",
+            winner
+        };
+    }
+
+    return false;
+};
+
 export default {
 
     comment: game.set_comment,
     fen: game.fen,
+    gameIsOver,
     header: game.header,
     inCheck: game.in_check,
     load,

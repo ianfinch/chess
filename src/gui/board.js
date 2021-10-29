@@ -357,6 +357,34 @@ const tidyUpAfterAutomaticMove = (response, boardDetails) => {
 };
 
 /**
+ * Check whether the last move has ended the game
+ */
+const handleGameOver = boardDetails => {
+
+    const gameOver = boardDetails.engine.gameIsOver();
+    if (!gameOver) {
+        return false;
+    }
+
+    const winner = gameOver.winner.substr(0, 1).toUpperCase() + gameOver.winner.substr(1);
+    const loser = gameOver.winner === "white" ? "Black" : "White";
+
+    if (gameOver.result === "checkmate") {
+        messages.alert("Win for " + winner, winner + " won game by checkmate");
+    }
+
+    else if (gameOver.result === "stalemate") {
+        messages.alert("Stalemate", winner + " put " + loser + " in stalemate");
+    }
+
+    else {
+        messages.alert("Drawn Game", "Game was drawn by " + gameOver.result);
+    }
+
+    return true;
+};
+
+/**
  * Handle moving pieces, using the engine for validation
  */
 const pieceMoved = boardDetails => {
@@ -368,23 +396,55 @@ const pieceMoved = boardDetails => {
             return "snapback";
         }
 
-        // Now try to make the move
-        const moved = boardDetails.engine.move({
-            from: source,
-            to: target
-        });
-
-        // Tidy up if it wasn't a legal move
-        if (!moved) {
+        // Check whether the game has already ended
+        if (handleGameOver(boardDetails)) {
             return "snapback";
         }
 
-        // Make sure the display reflects the move
-        postMoveDisplayUpdate(moved, boardDetails);
+        // Do we need to promote a pawn?
+        let checkForPromotion = null;
+        if ((piece === "wP" && target.match(/8$/)) ||
+            (piece === "bP" && target.match(/1$/))) {
+            checkForPromotion = messages.options("Promote pawn to ...", ["Queen", "Rook", "Knight", "Bishop"]);
+        } else {
+            checkForPromotion = Promise.resolve(null);
+        }
 
-        // Now look for any automatic moves
-        return automaticMoves(boardDetails)
-                .then(() => callHook(boardDetails, "onDrop"));
+        // Once we know about whether promotion is needed, try to make the move
+        return checkForPromotion.then(promotion => {
+
+            // Set up the details of the move
+            const moveDetails = {
+                from: source,
+                to: target
+            };
+
+            // If there's a promotion, add it to the move details
+            if (promotion) {
+                moveDetails.promotion = promotion.substr(0, 1).toLowerCase();
+            }
+
+            // Now try to make the move
+            const moved = boardDetails.engine.move(moveDetails);
+
+            // Tidy up if it wasn't a legal move
+            // Note that we can't just return "snapback", because we are now in
+            // a promise chain, so have to return a promise.  So, we will
+            // redraw the board explictly to make sure it is aligned to the
+            // internal position
+            if (!moved) {
+                boardDetails.board.position(boardDetails.engine.fen(), false);
+                return null;
+            }
+
+            // Make sure the display reflects the move
+            postMoveDisplayUpdate(moved, boardDetails);
+
+            // Now look for any automatic moves
+            return automaticMoves(boardDetails)
+                    .then(() => callHook(boardDetails, "onDrop"))
+                    .then(() => handleGameOver(boardDetails));
+        });
     };
 };
 
