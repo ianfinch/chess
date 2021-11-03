@@ -216,4 +216,7 @@ div#the-board .check::before {
 
 div.arrow {
     position: absolute;
+/*
+    z-index: 200;
+*/
 }

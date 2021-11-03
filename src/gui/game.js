@@ -49,9 +49,17 @@ const gameIsOver = () => {
     }
 
     if (game.in_draw()) {
+
         if (game.insufficient_material()) {
             return {
                 result: "draw due to insufficient material",
+                winner
+            };
+        }
+
+        if (game.in_threefold_repetition()) {
+            return {
+                result: "repeated moves",
                 winner
             };
         }
@@ -65,13 +73,6 @@ const gameIsOver = () => {
     if (game.in_stalemate()) {
         return {
             result: "stalemate",
-            winner
-        };
-    }
-
-    if (game.in_threefold_repetition()) {
-        return {
-            result: "repeated moves",
             winner
         };
     }

@@ -107,15 +107,15 @@ const createArrowSvg = ({ arrowDiv, width, height, margin, direction }) => {
     const arrow = `
 <svg width="${width}" height="${height}">
   <defs>
-    <marker id="arrowhead" viewBox="0 0 10 10"
-            refX="1" refY="5"
-            markerUnits="strokeWidth" markerWidth="2" markerHeight="2" orient="auto">
-      <path d="M 0 0 L 5 5 L 0 10 z" fill="steelblue" />
+    <marker id="arrowhead" viewBox="0 0 20 40"
+            refX="1" refY="20"
+            markerUnits="strokeWidth" markerWidth="3" markerHeight="3" orient="auto">
+      <path d="M 0 0 L 20 20 L 0 40 z" fill="steelblue" />
     </marker>
   </defs>
-  <circle cx="${x1}" cy="${y1}" r="${margin * 0.8}" fill="steelblue" opacity="0.7" />
+  <_circle cx="${x1}" cy="${y1}" r="${margin * 0.8}" fill="steelblue" opacity="0.7" />
   <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-        stroke="steelblue" stroke-width="20" marker-end="url(#arrowhead)" opacity="0.7" />
+        stroke="steelblue" stroke-linecap="round" stroke-width="12" marker-end="url(#arrowhead)" opacity="0.7" />
 </svg>
     `.trim();
 
