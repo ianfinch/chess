@@ -37,6 +37,7 @@ const showPossibleMoves = (opening, fen) => {
     const moves = opening.lines[fen].moves;
     moves.forEach(move => {
         arrows.drawArrow(move.from, move.to);
+        arrows.drawCircle(move.to);
     });
 };
 

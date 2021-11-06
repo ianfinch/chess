@@ -126,11 +126,65 @@ const createArrowSvg = ({ arrowDiv, width, height, margin, direction }) => {
     arrowDiv.appendChild(svg);
 };
 
+/**
+ * Draw a circle inside a square
+ */
+const drawCircle = square => {
+
+    const box = createCircleBox(square);
+    createCircleSvg(box);
+};
+
+/**
+ * Create the DIV for the circle
+ */
+const createCircleBox = (square) => {
+    const rect = document.getElementsByClassName("square-" + square)[0].getBoundingClientRect();
+
+    // Create the DIV
+    const circleDiv = document.createElement("DIV");
+    circleDiv.setAttribute("class", "circle");
+
+    // Apply the dimensions to the circle box
+    circleDiv.style.left = rect.left + "px";
+    circleDiv.style.top = rect.top + "px";
+    circleDiv.style.width = (rect.right - rect.left) + "px";
+    circleDiv.style.height = (rect.bottom - rect.top) + "px";
+
+    // Attach our circle to the container for the board
+    document.getElementById("container").appendChild(circleDiv);
+
+    return { circleDiv, diameter: rect.right - rect.left };
+};
+
+/**
+ * The SVG for the circle
+ */
+const createCircleSvg = ({ circleDiv, diameter }) => {
+
+    const circle = `
+<svg width="${diameter}" height="${diameter}">
+  <circle cx="${diameter * 0.5}" cy="${diameter * 0.5}" r="${diameter * 0.48}" fill="none" stroke="steelblue" stroke-width="4" opacity="0.7" />
+</svg>
+    `.trim();
+
+    const template = document.createElement("template");
+    template.innerHTML = circle;
+
+    const svg = template.content.firstChild;
+    circleDiv.appendChild(svg);
+};
+
+/**
+ * Remove all markups from the board
+ */
 const clear = () => {
     [...document.getElementsByClassName("arrow")].forEach(elem => elem.remove());
+    [...document.getElementsByClassName("circle")].forEach(elem => elem.remove());
 };
 
 export default {
     clear,
-    drawArrow
+    drawArrow,
+    drawCircle
 };

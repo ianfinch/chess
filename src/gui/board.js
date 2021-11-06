@@ -210,7 +210,7 @@ const formatPgn = text => {
             addingComment = false;
 
             if (!white) {
-                pending = "<div>(" + moveNumber + ") ... ";
+                pending = "<div><span></span><span>...</span>";
             }
         }
 
@@ -225,16 +225,16 @@ const formatPgn = text => {
 
         else if (move.match(/[0-9][0-9]*\./)) {
             moveNumber = move;
-            result += "<div>" + move + " ";
+            result += "<div><span>" + move + "</span><span>";
         }
 
         else if (white) {
-            result += move + " ";
+            result += move + "</span><span>";
             white = false;
         }
 
         else {
-            result += move + "</div>";
+            result += move + "</span></div>";
             white = true;
         }
     });

@@ -153,6 +153,16 @@ div#text {
     left: 604px;
 }
 
+div#text span:nth-child(1) {
+    display: inline-block;
+    width: 2em;
+}
+
+div#text span:nth-child(2) {
+    display: inline-block;
+    width: 3em;
+}
+
 div#text .comment {
     color: #ccc;
     font-style: italic;
@@ -214,9 +224,8 @@ div#the-board .check::before {
     z-index: 50;
 }
 
-div.arrow {
+div.arrow, div.circle {
     position: absolute;
-/*
     z-index: 200;
-*/
+    pointer-events: none;
 }
